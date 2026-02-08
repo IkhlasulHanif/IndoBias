@@ -82,7 +82,7 @@ class QwenModel:
         **kwargs
     ) -> str:
         """
-        Generate text from a prompt.
+        Generate text from a single prompt.
         
         Args:
             prompt: Input prompt text
@@ -94,12 +94,18 @@ class QwenModel:
         Returns:
             Generated text
         """
-        # Prepare input
-        inputs = self.tokenizer(prompt, return_tensors="pt")
+        # Prepare input using chat template by default
+        messages = [{"role": "user", "content": prompt}]
+        formatted_prompt = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
         
         # Move inputs to device
-        if self.device == "mps":
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
         # Set generation parameters
         gen_kwargs = {
@@ -124,49 +130,11 @@ class QwenModel:
             skip_special_tokens=True
         )
         
-        # Remove the prompt from output
-        if generated_text.startswith(prompt):
-            generated_text = generated_text[len(prompt):].strip()
+        # Remove the formatted prompt from output
+        if generated_text.startswith(formatted_prompt):
+            generated_text = generated_text[len(formatted_prompt):].strip()
         
         return generated_text
-    
-    def chat(
-        self,
-        messages: List[Dict[str, str]],
-        max_new_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        **kwargs
-    ) -> str:
-        """
-        Generate response using chat format.
-        
-        Args:
-            messages: List of message dicts with 'role' and 'content'
-                     Example: [{"role": "user", "content": "Hello"}]
-            max_new_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
-            top_p: Nucleus sampling
-            **kwargs: Additional generation parameters
-        
-        Returns:
-            Generated response text
-        """
-        # Apply chat template
-        prompt = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        
-        # Generate response
-        return self.generate(
-            prompt,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            **kwargs
-        )
     
     def batch_generate(
         self,
@@ -196,17 +164,27 @@ class QwenModel:
         for i in range(0, len(prompts), batch_size):
             batch = prompts[i:i + batch_size]
             
+            # Apply chat template to each prompt in batch
+            formatted_batch = []
+            for prompt in batch:
+                messages = [{"role": "user", "content": prompt}]
+                formatted = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
+                formatted_batch.append(formatted)
+            
             # Tokenize batch
             inputs = self.tokenizer(
-                batch,
+                formatted_batch,
                 return_tensors="pt",
                 padding=True,
                 truncation=True
             )
             
             # Move to device
-            if self.device == "mps":
-                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
             # Generate
             gen_kwargs = {
@@ -227,9 +205,9 @@ class QwenModel:
             # Decode batch
             for j, output in enumerate(outputs):
                 generated = self.tokenizer.decode(output, skip_special_tokens=True)
-                # Remove prompt
-                if generated.startswith(batch[j]):
-                    generated = generated[len(batch[j]):].strip()
+                # Remove formatted prompt
+                if generated.startswith(formatted_batch[j]):
+                    generated = generated[len(formatted_batch[j]):].strip()
                 results.append(generated)
         
         return results
