@@ -53,7 +53,7 @@ def main():
     # Initialize model with MPS
     print("Initializing Qwen model with MPS...")
     model = QwenModel(
-        model_name="Qwen/Qwen2.5-0.5B-Instruct",
+        model_name="Qwen/Qwen3-0.5B-Instruct",
         max_length=100,
         temperature=0.7
     )
