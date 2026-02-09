@@ -13,7 +13,7 @@ class QwenModel:
         model_name: str = "Qwen/Qwen3-8B",
         device: Optional[str] = None,
         max_length: int = 2048,
-        temperature: float = 0.7,
+        temperature: float = 0.9,
         top_p: float = 0.9,
     ):
         """
@@ -171,7 +171,8 @@ class QwenModel:
                 formatted = self.tokenizer.apply_chat_template(
                     messages,
                     tokenize=False,
-                    add_generation_prompt=True
+                    add_generation_prompt=True,
+                    enable_thinking=False,
                 )
                 formatted_batch.append(formatted)
             
