@@ -12,6 +12,8 @@ dependencies = [
     "torch>=2.0.0",
     "transformers>=4.35.0",
     "accelerate>=0.20.0",
+    "ipykernel>=7.2.0",
+    "pandas>=2.3.3",
 ]
 
 [project.scripts]

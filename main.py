@@ -231,7 +231,7 @@ def run_inference_pipeline(model_name: str = "qwen", model_id: str = "Qwen/Qwen3
     
     try:
         if model_name == "qwen":
-            model = load_model(model_name, model_id, max_length=100, temperature=0.7)
+            model = load_model(model_name, model_id)
         else:
             model = load_model(model_name, model_id)
     except Exception as e:
