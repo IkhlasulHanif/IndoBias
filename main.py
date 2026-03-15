@@ -294,7 +294,7 @@ def run_inference_pipeline(model_name: str = "qwen", model_id: str = "Qwen/Qwen3
                             metadata = prompt_data["metadata"]
                             
                             try:
-                                response = model.generate(prompt_text, max_new_tokens=50)
+                                response = model.generate(prompt_text)
                                 
                                 result = {
                                     "id": result_id,
