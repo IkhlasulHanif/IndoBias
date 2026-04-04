@@ -176,11 +176,11 @@ def main():
                 print(f"       ✓ Saved to: {results_file.relative_to(output_dir)}")
     
     print("\n" + "=" * 80)
-    print(f"✓ Inference Complete!")
+    print("✓ Inference Complete!")
     print(f"  Total prompts processed: {total_processed}")
     print(f"  Groups files: {len(groups_files)}")
     print(f"  Dimensions per group: {len(prompts_by_groups_dim_task[list(groups_files)[0]])}")
-    print(f"  Tasks per dimension: 7")
+    print("  Tasks per dimension: 7")
     print(f"  Model: {model.model_name}")
     print(f"  Device: {model.device}")
     print(f"  Results saved to: {run_dir.relative_to(output_dir)}/")
@@ -188,4 +188,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

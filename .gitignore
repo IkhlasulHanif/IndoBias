@@ -46,9 +46,11 @@ htmlcov/
 
 # Output
 output/
+logs/
 *.jsonl
 *.json
 !data/*.json
+*.log
 
 # OS
 .DS_Store
@@ -57,3 +59,6 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
+# Generated Python bytecode
+*.pyc
+*.pyo

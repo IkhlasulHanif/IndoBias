@@ -17,7 +17,6 @@ import yaml
 from .data_models import (
     Demography,
     DimensionCatalog,
-    DimensionDefinition,
     GeneratedPrompt,
     Group,
     GroupCollection,
@@ -175,7 +174,7 @@ class PromptExporter:
             filepath = subdir / prompt.metadata.to_filename()
             
             if include_metadata:
-                content = f"# Metadata\n"
+                content = "# Metadata\n"
                 content += f"# prompt_id: {prompt.metadata.prompt_id}\n"
                 content += f"# demography: {prompt.metadata.demography.value}\n"
                 content += f"# group: {prompt.metadata.group}\n"
@@ -379,5 +378,4 @@ def load_groups_from_yaml(filepath: Path) -> GroupCollection:
     with open(filepath) as f:
         data = yaml.safe_load(f)
     return GroupCollection.model_validate(data)
-
 

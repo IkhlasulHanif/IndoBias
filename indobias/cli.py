@@ -17,7 +17,7 @@ from .generator import (
     load_groups_from_csv,
     load_groups_from_directory,
 )
-from .data_models import Demography, GroupCollection, StereotypeDimension
+from .data_models import Demography, StereotypeDimension
 from .tasks import ALL_TASKS, get_task
 
 app = typer.Typer(

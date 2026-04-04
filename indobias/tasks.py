@@ -10,7 +10,6 @@ from Liu & Li 2012:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
 
 
 class TaskComplexity(Enum):
@@ -260,4 +259,3 @@ def get_task(task_id: int) -> TaskDefinition:
 def get_tasks_by_complexity(min_level: int = 1, max_level: int = 7) -> list[TaskDefinition]:
     """Get tasks filtered by complexity level range."""
     return [t for t in ALL_TASKS if min_level <= t.complexity_level <= max_level]
-

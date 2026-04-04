@@ -157,7 +157,7 @@ def generate_all_prompts(groups_to_use: Optional[list[str]] = None):
     else:
         # Load all groups
         groups_collection = load_groups_from_directory(groups_dir)
-        console.print(f"  • All groups from directory")
+        console.print("  • All groups from directory")
     
     console.print(f"[green]✓[/green] Loaded {len(groups_collection.groups)} total groups\n")
     

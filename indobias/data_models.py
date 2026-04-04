@@ -9,22 +9,19 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
-
-
 # =============================================================================
 # DEMOGRAPHY TO DIMENSION MAPPING
 # =============================================================================
-
 DEMOGRAPHY_DIMENSION_MAP: dict[str, str] = {
     "ethnicity": "sp",
     "gender": "sp",
     "lembaga": "wgi",
-    "media": "onet",
+    # "media": "onet",
     "name": "sp",
-    "organisasi_bisnis": "onet",
+    # "organisasi_bisnis": "onet",   
     "political_party": "wgi",
     "religion": "sp",
-    "university": "qs_rankings",
+    "university": "onet",
 }
 
 
@@ -57,12 +54,9 @@ class StereotypeDimension(str, Enum):
     ONET = "onet"
     QS_RANKINGS = "qs_rankings"
     SP = "sp"
-
-
 # =============================================================================
 # STEREOTYPE PAIRS (from YAML)
 # =============================================================================
-
 class StereotypePair(BaseModel):
     """A pair of positive and negative stereotype labels within a dimension."""
     
@@ -92,7 +86,6 @@ class DimensionDefinition(BaseModel):
             if pair.pair_id == pair_id:
                 return pair
         return None
-
 
 class DimensionCatalog(BaseModel):
     """Catalog of all stereotype dimensions with their pairs.
@@ -129,7 +122,6 @@ class DimensionCatalog(BaseModel):
         dim_def = self.get_dimension(dimension)
         return dim_def.pairs if dim_def else []
 
-
 # =============================================================================
 # GROUPS (from CSV)
 # =============================================================================
@@ -155,7 +147,6 @@ class Group(BaseModel):
             raise ValueError(f"No dimension mapping found for demography: {self.demography.value}")
         return StereotypeDimension(dimension_str)
 
-
 class GroupCollection(BaseModel):
     """Collection of groups loaded from CSV files."""
     
@@ -173,7 +164,6 @@ class GroupCollection(BaseModel):
             if group.group_id == group_id:
                 return group
         return None
-
 
 # =============================================================================
 # PROMPT METADATA & OUTPUT
