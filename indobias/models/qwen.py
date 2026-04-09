@@ -30,6 +30,11 @@ class QwenModel:
         self.max_length = max_length
         self.temperature = temperature
         self.top_p = top_p
+        self.chat_template_kwargs = {
+            "tokenize": False,
+            "add_generation_prompt": True,
+            "enable_thinking": False,
+        }
         
         # Auto-detect device if not specified
         if device is None:
@@ -72,6 +77,37 @@ class QwenModel:
         
         self.model.eval()
         print(f"✓ Model loaded successfully on {self.device}")
+
+    def _format_prompt(self, prompt: str) -> str:
+        messages = [{"role": "user", "content": prompt}]
+        return self.tokenizer.apply_chat_template(
+            messages,
+            **self.chat_template_kwargs,
+        )
+
+    def _build_generation_kwargs(
+        self,
+        max_new_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        return {
+            "max_new_tokens": max_new_tokens or self.max_length,
+            "temperature": temperature or self.temperature,
+            "top_p": top_p or self.top_p,
+            "do_sample": True,
+            "pad_token_id": self.tokenizer.eos_token_id,
+            **kwargs,
+        }
+
+    def _move_inputs_to_device(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        return {key: value.to(self.device) for key, value in inputs.items()}
+
+    def _strip_prompt_from_output(self, generated_text: str, formatted_prompt: str) -> str:
+        if generated_text.startswith(formatted_prompt):
+            return generated_text[len(formatted_prompt):].strip()
+        return generated_text
     
     def generate(
         self,
@@ -94,28 +130,21 @@ class QwenModel:
         Returns:
             Generated text
         """
-        # Prepare input using chat template by default
-        messages = [{"role": "user", "content": prompt}]
-        formatted_prompt = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=False
-        )
+        # Prepare input using a shared chat-template configuration.
+        formatted_prompt = self._format_prompt(prompt)
         
         inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
         
         # Move inputs to device
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        inputs = self._move_inputs_to_device(inputs)
         
         # Set generation parameters
-        gen_kwargs = {
-            "max_new_tokens": max_new_tokens or self.max_length,
-            "temperature": temperature or self.temperature,
-            "top_p": top_p or self.top_p,
-            "do_sample": True,
-            "pad_token_id": self.tokenizer.eos_token_id,
-            **kwargs
-        }
+        gen_kwargs = self._build_generation_kwargs(
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            **kwargs,
+        )
         
         # Generate
         with torch.no_grad():
@@ -130,11 +159,7 @@ class QwenModel:
             skip_special_tokens=True
         )
         
-        # Remove the formatted prompt from output
-        if generated_text.startswith(formatted_prompt):
-            generated_text = generated_text[len(formatted_prompt):].strip()
-        
-        return generated_text
+        return self._strip_prompt_from_output(generated_text, formatted_prompt)
     
     def batch_generate(
         self,
@@ -164,17 +189,8 @@ class QwenModel:
         for i in range(0, len(prompts), batch_size):
             batch = prompts[i:i + batch_size]
             
-            # Apply chat template to each prompt in batch
-            formatted_batch = []
-            for prompt in batch:
-                messages = [{"role": "user", "content": prompt}]
-                formatted = self.tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=True,
-                    enable_thinking=False,
-                )
-                formatted_batch.append(formatted)
+            # Apply chat template to each prompt in batch.
+            formatted_batch = [self._format_prompt(prompt) for prompt in batch]
             
             # Tokenize batch
             inputs = self.tokenizer(
@@ -185,17 +201,15 @@ class QwenModel:
             )
             
             # Move to device
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            inputs = self._move_inputs_to_device(inputs)
             
             # Generate
-            gen_kwargs = {
-                "max_new_tokens": max_new_tokens or self.max_length,
-                "temperature": temperature or self.temperature,
-                "top_p": top_p or self.top_p,
-                "do_sample": True,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                **kwargs
-            }
+            gen_kwargs = self._build_generation_kwargs(
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                **kwargs,
+            )
             
             with torch.no_grad():
                 outputs = self.model.generate(
@@ -206,10 +220,7 @@ class QwenModel:
             # Decode batch
             for j, output in enumerate(outputs):
                 generated = self.tokenizer.decode(output, skip_special_tokens=True)
-                # Remove formatted prompt
-                if generated.startswith(formatted_batch[j]):
-                    generated = generated[len(formatted_batch[j]):].strip()
-                results.append(generated)
+                results.append(self._strip_prompt_from_output(generated, formatted_batch[j]))
         
         return results
     
