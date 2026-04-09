@@ -294,13 +294,15 @@ def run_inference_pipeline(model_name: str = "qwen", model_id: str = "Qwen/Qwen3
                             metadata = prompt_data["metadata"]
                             
                             try:
-                                response = model.generate(prompt_text)
+                                responses = model.generate_many(prompt_text)
                                 
                                 result = {
                                     "id": result_id,
                                     "demography": demography,
                                     "prompt": prompt_text,
-                                    "response": response,
+                                    "response": responses[0],
+                                    "responses": responses,
+                                    "num_generations": len(responses),
                                     "metadata": metadata,
                                     "model": getattr(model, 'model_name', model_id),
                                     "device": getattr(model, 'device', 'unknown'),

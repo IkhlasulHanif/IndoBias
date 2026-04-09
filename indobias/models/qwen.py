@@ -13,6 +13,7 @@ class QwenModel:
         model_name: str = "Qwen/Qwen3-8B",
         device: Optional[str] = None,
         max_length: int = 2048,
+        num_generations: int = 10,
         temperature: float = 0.9,
         top_p: float = 0.9,
     ):
@@ -23,11 +24,13 @@ class QwenModel:
             model_name: HuggingFace model name/path
             device: Device to use ('mps', 'cuda', 'cpu', or None for auto-detect)
             max_length: Maximum generation length
+            num_generations: Default number of responses to sample per prompt
             temperature: Sampling temperature
             top_p: Nucleus sampling parameter
         """
         self.model_name = model_name
         self.max_length = max_length
+        self.num_generations = num_generations
         self.temperature = temperature
         self.top_p = top_p
         self.chat_template_kwargs = {
@@ -88,12 +91,15 @@ class QwenModel:
     def _build_generation_kwargs(
         self,
         max_new_tokens: Optional[int] = None,
+        num_generations: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         **kwargs,
     ) -> Dict[str, Any]:
+        num_generations = num_generations or self.num_generations
         return {
             "max_new_tokens": max_new_tokens or self.max_length,
+            "num_return_sequences": num_generations,
             "temperature": temperature or self.temperature,
             "top_p": top_p or self.top_p,
             "do_sample": True,
@@ -130,6 +136,38 @@ class QwenModel:
         Returns:
             Generated text
         """
+        return self.generate_many(
+            prompt,
+            num_generations=1,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            **kwargs,
+        )[0]
+
+    def generate_many(
+        self,
+        prompt: str,
+        num_generations: Optional[int] = None,
+        max_new_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        **kwargs,
+    ) -> List[str]:
+        """
+        Generate multiple sampled texts from the same prompt.
+
+        Args:
+            prompt: Input prompt text
+            num_generations: Number of responses to sample
+            max_new_tokens: Maximum tokens to generate (overrides max_length)
+            temperature: Sampling temperature (overrides default)
+            top_p: Nucleus sampling (overrides default)
+            **kwargs: Additional generation parameters
+
+        Returns:
+            List of generated texts
+        """
         # Prepare input using a shared chat-template configuration.
         formatted_prompt = self._format_prompt(prompt)
         
@@ -140,6 +178,7 @@ class QwenModel:
         
         # Set generation parameters
         gen_kwargs = self._build_generation_kwargs(
+            num_generations=num_generations,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
@@ -153,28 +192,30 @@ class QwenModel:
                 **gen_kwargs
             )
         
-        # Decode
-        generated_text = self.tokenizer.decode(
-            outputs[0],
-            skip_special_tokens=True
-        )
-        
-        return self._strip_prompt_from_output(generated_text, formatted_prompt)
+        return [
+            self._strip_prompt_from_output(
+                self.tokenizer.decode(output, skip_special_tokens=True),
+                formatted_prompt,
+            )
+            for output in outputs
+        ]
     
     def batch_generate(
         self,
         prompts: List[str],
+        num_generations: Optional[int] = None,
         max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         batch_size: int = 4,
         **kwargs
-    ) -> List[str]:
+    ) -> List[List[str]]:
         """
         Generate text for multiple prompts in batches.
         
         Args:
             prompts: List of input prompts
+            num_generations: Number of responses to sample per prompt
             max_new_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             top_p: Nucleus sampling
@@ -182,7 +223,7 @@ class QwenModel:
             **kwargs: Additional generation parameters
         
         Returns:
-            List of generated texts
+            List of generated-text lists, one per prompt
         """
         results = []
         
@@ -205,6 +246,7 @@ class QwenModel:
             
             # Generate
             gen_kwargs = self._build_generation_kwargs(
+                num_generations=num_generations,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
                 top_p=top_p,
@@ -217,10 +259,20 @@ class QwenModel:
                     **gen_kwargs
                 )
             
+            batch_num_generations = num_generations or self.num_generations
+
             # Decode batch
-            for j, output in enumerate(outputs):
-                generated = self.tokenizer.decode(output, skip_special_tokens=True)
-                results.append(self._strip_prompt_from_output(generated, formatted_batch[j]))
+            for j in range(len(batch)):
+                start = j * batch_num_generations
+                end = start + batch_num_generations
+                prompt_outputs = outputs[start:end]
+                results.append([
+                    self._strip_prompt_from_output(
+                        self.tokenizer.decode(output, skip_special_tokens=True),
+                        formatted_batch[j],
+                    )
+                    for output in prompt_outputs
+                ])
         
         return results
     

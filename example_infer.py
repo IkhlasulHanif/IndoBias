@@ -138,14 +138,16 @@ def main():
                         
                         # Generate response
                         try:
-                            response = model.generate(prompt_text, max_new_tokens=50)
+                            responses = model.generate_many(prompt_text, max_new_tokens=50)
                             
                             # Save result with ID
                             result = {
                                 "id": result_id,
                                 "groups_file": groups_name,
                                 "prompt": prompt_text,
-                                "response": response,
+                                "response": responses[0],
+                                "responses": responses,
+                                "num_generations": len(responses),
                                 "metadata": metadata,
                                 "model": model.model_name,
                                 "device": model.device,
