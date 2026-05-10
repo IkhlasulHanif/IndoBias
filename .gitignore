@@ -62,3 +62,6 @@ Thumbs.db
 # Generated Python bytecode
 *.pyc
 *.pyo
+
+# other
+envlinux/
