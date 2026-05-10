@@ -1,6 +1,7 @@
 import os
 import gc
 import torch
+import shutil
 import argparse
 import pandas as pd
 from datasets import load_dataset
@@ -77,7 +78,7 @@ def run_post_eval():
 
         # 2. If all languages are evaluated, just download them locally and skip model loading
         if not missing_langs:
-            print(f"   ✅ All {len(LANGUAGES)} languages already evaluated for {ckpt}.")
+            print(f"    ✅ All {len(LANGUAGES)} languages already evaluated for {ckpt}.")
             for lang in LANGUAGES:
                 local_file_path = os.path.join(local_ckpt_result_dir, f"bias_report_{lang}.csv")
                 if not os.path.exists(local_file_path):
@@ -92,8 +93,8 @@ def run_post_eval():
             continue
 
         # 3. If there are missing languages, we must download weights and run evaluations
-        print(f"   ⚠️ Missing evaluations for: {missing_langs}")
-        print(f"   -> Downloading weights for {ckpt}...")
+        print(f"    ⚠️ Missing evaluations for: {missing_langs}")
+        print(f"    -> Downloading weights for {ckpt}...")
         
         local_weights_dir = snapshot_download(
             repo_id=REPO_ID,
@@ -105,7 +106,7 @@ def run_post_eval():
         model_path = os.path.join(local_weights_dir, ckpt)
 
         # Initialize the model exactly ONCE per checkpoint to save massive amounts of time/VRAM
-        print(f"   -> Loading MaskedLM into VRAM...")
+        print(f"    -> Loading MaskedLM into VRAM...")
         scorer = MaskedLM(
             model=model_path, 
             max_length=MAX_SEQ_LENGTH,
@@ -157,10 +158,15 @@ def run_post_eval():
                 print(f"         ❌ Failed evaluation for {lang}: {e}")
 
         # Clean up VRAM before moving to the next checkpoint
-        print(f"   -> Cleaning up VRAM...")
+        print(f"    -> Cleaning up VRAM...")
         del scorer
         gc.collect()
         torch.cuda.empty_cache()
+
+        # DELETE CHECKPOINT FROM DISK
+        if os.path.exists(local_weights_dir):
+            print(f"    -> 🗑️ Deleting checkpoint weights from {local_weights_dir} to save space...")
+            shutil.rmtree(local_weights_dir)
 
     print("\n🎉 Post-Pretraining Evaluation Complete!")
 
