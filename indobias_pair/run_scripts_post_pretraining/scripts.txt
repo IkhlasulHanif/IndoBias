@@ -1,0 +1,6 @@
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-cc100-cc100_ind_source"
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-wikipedia-20231101.id"
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-liputan6-default"
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-cc100_cc100_cc100-cc100_ind_source_cc100_jav_source_cc100_sun_source"
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-wikipedia_wikipedia_wikipedia-20231101.id_20231101.jv_20231101.su"
+python post_pretraining_eval.py --repo_id "FrinzTheCoder/indobert-base-uncased-pt-6_1_1_1_1_mix"

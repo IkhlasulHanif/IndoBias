@@ -118,7 +118,7 @@ def run_post_eval():
             print(f"      -> 🧪 Evaluating subset [{lang}]...")
             try:
                 # Load specific language subset
-                ds = load_dataset(EVAL_DATASET_NAME, lang, split="train", token=HF_TOKEN)
+                ds = load_dataset(EVAL_DATASET_NAME, "default", token=HF_TOKEN)[lang]
                 df = ds.to_pandas()
                 df_clone = df.copy(deep=True) 
                 
