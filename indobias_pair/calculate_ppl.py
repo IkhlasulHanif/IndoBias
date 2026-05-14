@@ -1,14 +1,28 @@
 import os
 import gc
+import sys
 import shutil
 import pandas as pd
 import torch
 
 from lmppl import MaskedLM
-from evaluate import load
 from config import *
 from dataclasses import fields
 from argparse import ArgumentParser
+from pathlib import Path
+
+
+def load_hf_evaluate():
+    repo_root = str(Path(__file__).resolve().parent.parent)
+    original_sys_path = sys.path[:]
+    try:
+        sys.path = [path for path in sys.path if os.path.abspath(path or ".") != repo_root]
+        if "evaluate" in sys.modules and not hasattr(sys.modules["evaluate"], "load"):
+            del sys.modules["evaluate"]
+        from evaluate import load as hf_load
+        return hf_load
+    finally:
+        sys.path = original_sys_path
 
 # function to load args from config.py
 def add_args_from_dataclass(parser, dc, prefix=""):
@@ -41,6 +55,7 @@ model_list = experiment_cfg.model_list
 batch_size = experiment_cfg.batch_size
 device = experiment_cfg.device
 
+load = load_hf_evaluate()
 perplexity = load("perplexity", module_type="metric")
 
 def get_hf_home():
