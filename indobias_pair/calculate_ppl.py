@@ -1,16 +1,18 @@
 import os
 import gc
-import sys
 import shutil
 import pandas as pd
 import torch
 
+from utils.maskedlm_compat import patch_lmppl_transformers_compat
 from lmppl import MaskedLM
 from config import *
 from dataclasses import fields
 from argparse import ArgumentParser
-from pathlib import Path
 from evaluate import load
+from transformers import AutoConfig
+
+patch_lmppl_transformers_compat()
 
 
 # function to load args from config.py
@@ -61,6 +63,42 @@ def delete_model_cache(model_id: str):
         print(f"🗑️ Deleted cached model from {repo_cache_dir}")
 
 
+MASKED_LM_MODEL_TYPES = {
+    "albert",
+    "bert",
+    "camembert",
+    "deberta",
+    "deberta-v2",
+    "distilbert",
+    "electra",
+    "flaubert",
+    "roberta",
+    "xlm",
+    "xlm-roberta",
+}
+
+
+def validate_encoder_model(model_id: str):
+    try:
+        config = AutoConfig.from_pretrained(model_id)
+    except Exception as exc:
+        raise ValueError(
+            f"Could not load config for encoder model `{model_id}`"
+        ) from exc
+
+    architectures = config.architectures or []
+    if any(arch.endswith("ForMaskedLM") for arch in architectures):
+        return
+
+    if getattr(config, "model_type", None) in MASKED_LM_MODEL_TYPES:
+        return
+
+    raise ValueError(
+        f"Encoder model `{model_id}` is not a masked-LM checkpoint and "
+        "cannot be evaluated with pseudo-perplexity."
+    )
+
+
 dataset_frames = []
 for file_to_process in files_to_process:
     dataset_frames.append(
@@ -77,6 +115,7 @@ for model_type, model_id in model_list:
     try:
         print(f"Evaluating model: {model_id}")
         if model_type == 'encoder':
+            validate_encoder_model(model_id)
             scorer = MaskedLM(
                 model=model_id,
                 max_length=256,
@@ -119,7 +158,7 @@ for model_type, model_id in model_list:
             df_clone.to_excel(full_output_path)
 
     except Exception as e:
-        print(f"❌ Failed for model {model_id}. Skipping to next model: {e}")
+        print(f"❌ Failed for model {model_id} [{model_type}]. Skipping to next model: {e}")
         continue
     finally:
         if scorer is not None:

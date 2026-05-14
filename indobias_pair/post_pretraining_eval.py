@@ -6,7 +6,10 @@ import argparse
 import pandas as pd
 from datasets import load_dataset
 from huggingface_hub import HfApi, snapshot_download, hf_hub_download
+from utils.maskedlm_compat import patch_lmppl_transformers_compat
 from lmppl import MaskedLM
+
+patch_lmppl_transformers_compat()
 
 # ==========================================
 # PARSE ARGS

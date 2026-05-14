@@ -4,6 +4,7 @@ import os
 import gc
 import torch
 import argparse
+from utils.maskedlm_compat import patch_lmppl_transformers_compat
 from lmppl import MaskedLM
 from transformers import TrainerCallback
 from huggingface_hub import HfApi, snapshot_download
@@ -18,6 +19,8 @@ from transformers import (
 )
 from utils.dataset_cleaners import clean_liputan6_text
 from utils.data_exporter import export_training_sample
+
+patch_lmppl_transformers_compat()
 
 # ==========================================
 # PARSE ARGS

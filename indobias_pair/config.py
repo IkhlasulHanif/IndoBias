@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from itertools import product
 
 # format the models into (type, model_name) (e.g., ('decoder','Qwen/Qwen3-8B'))
-DECODER_MODELS: list[str, str] = list(product(['decoder'], 
+DECODER_MODELS: list[tuple[str, str]] = list(product(['decoder'], 
                                               ['Qwen/Qwen3-8B-Base',
                                                'Qwen/Qwen3-8B',
                                                'meta-llama/Llama-3.1-8B',
@@ -23,10 +23,12 @@ DECODER_MODELS: list[str, str] = list(product(['decoder'],
                                                'indonlp/cendol-llama2-7b-chat',
                                                'Ichsan2895/Merak-7B-v4',
                                                ]))
-ENCODER_MODELS: list[str, str] = list(product(['encoder'], 
+# Only include encoder checkpoints that expose a masked-language-model head.
+# Embedding encoders such as `intfloat/multilingual-e5-base` cannot be scored
+# through `lmppl.MaskedLM` pseudo-perplexity and will fail at load time.
+ENCODER_MODELS: list[tuple[str, str]] = list(product(['encoder'], 
                                               ['google-bert/bert-base-multilingual-cased',
                                                'FacebookAI/xlm-roberta-base',
-                                               'intfloat/multilingual-e5-base',
                                                'indolem/indobert-base-uncased',
                                                'indolem/indobertweet-base-uncased',
                                               ]))
@@ -37,7 +39,7 @@ ENCODER_MODELS: list[str, str] = list(product(['encoder'],
 
 @dataclass
 class ExperimentConfig:
-    model_list: tuple[str, str] = tuple(DECODER_MODELS + ENCODER_MODELS)
+    model_list: tuple[tuple[str, str], ...] = tuple(DECODER_MODELS + ENCODER_MODELS)
     file_to_process: tuple[str, ...] = (
         "indobias_pair/data/IndoBias_Javanese.csv",
         "indobias_pair/data/IndoBias_Makassar.csv",
