@@ -38,6 +38,10 @@ ENCODER_MODELS: list[str, str] = list(product(['encoder'],
 @dataclass
 class ExperimentConfig:
     model_list: tuple[str, str] = tuple(DECODER_MODELS + ENCODER_MODELS)
-    file_to_process: str = "IndoBias_adjective_based.csv"
+    file_to_process: tuple[str, ...] = (
+        "indobias_pair/data/IndoBias_Javanese.csv",
+        "indobias_pair/data/IndoBias_Makassar.csv",
+        "indobias_pair/data/IndoBias_Sundanese.csv",
+    )
     batch_size: int = 8
     device:str = 'cuda'
