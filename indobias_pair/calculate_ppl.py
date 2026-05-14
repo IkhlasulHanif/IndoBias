@@ -1,5 +1,8 @@
 import os
+import gc
+import shutil
 import pandas as pd
+import torch
 
 from lmppl import MaskedLM
 from evaluate import load
@@ -40,14 +43,45 @@ device = experiment_cfg.device
 
 perplexity = load("perplexity", module_type="metric")
 
-# evaluate models
-for file_to_process in files_to_process:
-    df = pd.read_csv(file_to_process)
-    dataset_name = os.path.splitext(os.path.basename(file_to_process))[0]
+def get_hf_home():
+    return os.path.expanduser(os.environ.get("HF_HOME", "~/.cache/huggingface"))
 
-    for model_type, model_id in model_list:
-        try:
-            print(f"Evaluating perplexity for model: {model_id} on {dataset_name}")
+
+def delete_model_cache(model_id: str):
+    repo_cache_dir = os.path.join(
+        get_hf_home(),
+        "hub",
+        f"models--{model_id.replace('/', '--')}"
+    )
+    if os.path.exists(repo_cache_dir):
+        shutil.rmtree(repo_cache_dir)
+        print(f"🗑️ Deleted cached model from {repo_cache_dir}")
+
+
+dataset_frames = []
+for file_to_process in files_to_process:
+    dataset_frames.append(
+        (
+            os.path.splitext(os.path.basename(file_to_process))[0],
+            pd.read_csv(file_to_process),
+        )
+    )
+
+
+# evaluate models
+for model_type, model_id in model_list:
+    scorer = None
+    try:
+        print(f"Evaluating model: {model_id}")
+        if model_type == 'encoder':
+            scorer = MaskedLM(
+                model=model_id,
+                max_length=256,
+                device_map=device,
+            )
+
+        for dataset_name, df in dataset_frames:
+            print(f"  -> Running on {dataset_name}")
 
             df_clone = df.copy(deep=True) # deep clone df
             protrope_texts = df_clone['protrope'].to_list()
@@ -66,9 +100,6 @@ for file_to_process in files_to_process:
                 )
                 results = results['perplexities']
             else:
-                scorer = MaskedLM(model=model_id, 
-                                max_length=256,
-                                device_map=device)
                 results = scorer.get_perplexity(inputs, batch_size=batch_size)
             
             # reshape data back to original form
@@ -84,5 +115,13 @@ for file_to_process in files_to_process:
             )
             df_clone.to_excel(full_output_path)
 
-        except Exception as e:
-            print(f"❌ Failed for model {model_id} on {dataset_name}: {e}")
+    except Exception as e:
+        print(f"❌ Failed for model {model_id}. Skipping to next model: {e}")
+        continue
+    finally:
+        if scorer is not None:
+            del scorer
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        delete_model_cache(model_id)
