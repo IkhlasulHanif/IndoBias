@@ -6,8 +6,8 @@ DECODER_MODELS: list[tuple[str, str]] = list(product(['decoder'],
                                               [
                                                #  'Qwen/Qwen3-8B-Base',
                                                # 'Qwen/Qwen3-8B',
-                                               # 'meta-llama/Llama-3.1-8B',
-                                               # 'meta-llama/Llama-3.1-8B-Instruct',
+                                               'meta-llama/Llama-3.1-8B',
+                                               'meta-llama/Llama-3.1-8B-Instruct',
                                                # 'google/gemma-3-4b-pt',
                                                # 'google/gemma-3-4b-it',
                                                # 'allenai/Olmo-3-1025-7B',
@@ -20,18 +20,21 @@ DECODER_MODELS: list[tuple[str, str]] = list(product(['decoder'],
                                                # 'sail/Sailor2-8B-Chat',
                                                # 'Sahabat-AI/gemma2-9b-cpt-sahabatai-v1-base',
                                                # 'Sahabat-AI/gemma2-9b-cpt-sahabatai-v1-instruct',
-                                               # 'Yellow-AI-NLP/komodo-7b-base',
-                                               # 'indonlp/cendol-llama2-7b-chat',
+                                               'Yellow-AI-NLP/komodo-7b-base',
+                                               'indonlp/cendol-llama2-7b-chat',
                                                # 'Ichsan2895/Merak-7B-v4',
                                                ]))
 # Only include encoder checkpoints that expose a masked-language-model head.
 # Embedding encoders such as `intfloat/multilingual-e5-base` cannot be scored
 # through `lmppl.MaskedLM` pseudo-perplexity and will fail at load time.
 ENCODER_MODELS: list[tuple[str, str]] = list(product(['encoder'], 
-                                              ['google-bert/bert-base-multilingual-cased',
-                                               'FacebookAI/xlm-roberta-base',
-                                               'indolem/indobert-base-uncased',
-                                               'indolem/indobertweet-base-uncased',
+                                              [
+                                                  # 'google-bert/bert-base-multilingual-cased',
+                                               # 'FacebookAI/xlm-roberta-base',
+                                               # 'indolem/indobert-base-uncased',
+                                               # 'indolem/indobertweet-base-uncased',
+                                               # "intfloat/multilingual-e5-large"
+                                               
                                               ]))
 
 # sample for smaller models
