@@ -1,19 +1,13 @@
-"""Prompt generator for creating a systematic grid of prompts.
-
-Generates prompts by combining:
-1. Groups (from CSV files)
-2. Stereotype pairs (from dimension catalog YAML)
-3. Task templates (1-7 complexity levels)
-"""
+"""Prompt generator for creating a systematic grid of prompts."""
 
 import csv
 import hashlib
 import json
 from pathlib import Path
+import runpy
 from typing import Iterator
 
-import yaml
-
+from .config import infer_group_metadata
 from .data_models import (
     Demography,
     DimensionCatalog,
@@ -60,6 +54,7 @@ def generate_single_prompt(
         group_id=group.group_id,
         dimension=dimension,
         stereotype_pair=pair.pair_id,
+        parent_category=pair.parent_category,
         positive_label=pair.positive_label,
         negative_label=pair.negative_label,
         task_id=task.task_id,
@@ -82,7 +77,7 @@ def generate_prompts(
     
     Args:
         groups: Collection of demographic groups (from CSV)
-        catalog: Catalog of stereotype dimensions/pairs (from YAML)
+        catalog: Catalog of stereotype dimensions/pairs
         task_ids: Optional list of specific task IDs (default: all 1-7)
         demographies: Optional filter for demographic categories
         dimensions: Optional filter for stereotype dimensions
@@ -180,6 +175,7 @@ class PromptExporter:
                 content += f"# group: {prompt.metadata.group}\n"
                 content += f"# dimension: {prompt.metadata.dimension.value}\n"
                 content += f"# stereotype_pair: {prompt.metadata.stereotype_pair}\n"
+                content += f"# parent_category: {prompt.metadata.parent_category}\n"
                 content += f"# positive_label: {prompt.metadata.positive_label}\n"
                 content += f"# negative_label: {prompt.metadata.negative_label}\n"
                 content += f"# task_id: {prompt.metadata.task_id}\n"
@@ -264,29 +260,14 @@ class PromptExporter:
         
         return len(all_prompts)
     
-    def export_yaml(
-        self,
-        prompts: Iterator[GeneratedPrompt],
-        filename: str = "prompts.yaml",
-    ) -> int:
-        """Export all prompts to a single YAML file."""
-        filepath = self.output_dir / filename
-        all_prompts = [prompt.to_dict() for prompt in prompts]
-        
-        with open(filepath, "w") as f:
-            yaml.dump(all_prompts, f, default_flow_style=False, allow_unicode=True)
-        
-        return len(all_prompts)
-
-
-# =============================================================================
-# LOADERS
-# =============================================================================
-
 def load_dimension_catalog(filepath: Path) -> DimensionCatalog:
-    """Load stereotype dimension catalog from YAML file."""
-    with open(filepath) as f:
-        data = yaml.safe_load(f)
+    """Load stereotype dimension catalog from a Python module."""
+    module_globals = runpy.run_path(str(filepath))
+    data = module_globals.get("DIMENSION_CATALOG")
+    if data is None:
+        raise ValueError(
+            f"Dimension catalog file must define DIMENSION_CATALOG: {filepath}",
+        )
     return DimensionCatalog.model_validate(data)
 
 
@@ -310,37 +291,9 @@ def load_groups_from_csv(filepath: Path) -> GroupCollection:
     - gender.csv → gender
     """
     groups = []
-    
-    # Infer demography from filename
-    filename = filepath.stem.lower()
-    
-    # Map filenames to demography types
-    filename_to_demography = {
-        "ethnicity_indonesia": "ethnicity",
-        "ethnicity": "ethnicity",
-        "lembaga": "lembaga",
-        "media": "media",
-        "name": "name",
-        "organisasi_bisnis": "organisasi_bisnis",
-        "political_party": "political_party",
-        "religion": "religion",
-        "university": "university",
-        "gender": "gender",
-        "nationality": "nationality",
-        "race": "race",
-    }
-    
-    demography_str = filename_to_demography.get(filename)
-    if demography_str is None:
-        raise ValueError(f"Cannot infer demography from filename: {filepath.name}")
-    
+    demography_str, country = infer_group_metadata(filepath.stem)
     demography = Demography(demography_str)
-    
-    # Determine country if applicable
-    country = None
-    if "indonesia" in filename:
-        country = "Indonesia"
-    
+
     with open(filepath, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -371,11 +324,3 @@ def load_groups_from_directory(directory: Path) -> GroupCollection:
         name=f"Groups from {directory}",
         groups=all_groups,
     )
-
-
-def load_groups_from_yaml(filepath: Path) -> GroupCollection:
-    """Load groups from a YAML file (alternative to CSV)."""
-    with open(filepath) as f:
-        data = yaml.safe_load(f)
-    return GroupCollection.model_validate(data)
-

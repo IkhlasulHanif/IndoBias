@@ -42,6 +42,7 @@ from typing import Optional
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 
+from indobias.config import DEFAULT_OUTPUT_DIR, DIMENSIONS_FILE, GROUPS_DIR
 from indobias.generator import (
     generate_prompts,
     load_dimension_catalog,
@@ -83,7 +84,7 @@ def load_model(model_name: str, model_id: str, **kwargs):
 
 def list_available_groups():
     """List all available group files."""
-    groups_dir = Path("data/groups")
+    groups_dir = GROUPS_DIR
     if not groups_dir.exists():
         console.print(f"[red]❌ Groups directory not found: {groups_dir}[/red]")
         return
@@ -124,9 +125,9 @@ def generate_all_prompts(groups_to_use: Optional[list[str]] = None):
     console.print("[bold cyan]STEP 1: GENERATING PROMPTS[/bold cyan]")
     console.print("[bold cyan]═" * 40 + "[/bold cyan]\n")
     
-    groups_dir = Path("data/groups")
-    dimensions_file = Path("data/dimensions.yaml")
-    output_dir = Path("output")
+    groups_dir = GROUPS_DIR
+    dimensions_file = DIMENSIONS_FILE
+    output_dir = DEFAULT_OUTPUT_DIR
     
     # Load dimension catalog
     console.print("[cyan]Loading dimensions...[/cyan]")
@@ -196,7 +197,7 @@ def run_inference_pipeline(model_name: str = "qwen", model_id: str = "Qwen/Qwen3
     console.print("[bold cyan]STEP 2: RUNNING INFERENCE[/bold cyan]")
     console.print("[bold cyan]═" * 40 + "[/bold cyan]\n")
     
-    output_dir = Path("output")
+    output_dir = DEFAULT_OUTPUT_DIR
     models_dir = output_dir / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
     

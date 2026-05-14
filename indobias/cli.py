@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from .config import DEFAULT_OUTPUT_DIR, DIMENSIONS_FILE, GROUPS_DIR, VALID_DEMOGRAPHIES, VALID_DIMENSIONS
 from .generator import (
     PromptExporter,
     count_prompts,
@@ -28,23 +29,28 @@ app = typer.Typer(
 console = Console()
 
 
+def format_valid_options(values: tuple[str, ...]) -> str:
+    """Format a list of valid CLI options for error/help messages."""
+    return ", ".join(values)
+
+
 @app.command()
 def generate(
     dimensions_file: Annotated[
         Path,
-        typer.Argument(help="Path to dimensions YAML file"),
-    ] = Path("data/dimensions.yaml"),
+        typer.Argument(help="Path to dimensions catalog Python file"),
+    ] = DIMENSIONS_FILE,
     groups_path: Annotated[
         Path,
         typer.Option("--groups", "-g", help="Path to groups CSV file or directory"),
-    ] = Path("data/groups"),
+    ] = GROUPS_DIR,
     output_dir: Annotated[
         Path,
         typer.Option("--output", "-o", help="Output directory for generated prompts"),
-    ] = Path("./output"),
+    ] = DEFAULT_OUTPUT_DIR,
     format: Annotated[
         str,
-        typer.Option("--format", "-f", help="Output format: files, jsonl, json, yaml"),
+        typer.Option("--format", "-f", help="Output format: files, jsonl, json"),
     ] = "jsonl",
     tasks: Annotated[
         Optional[str],
@@ -52,11 +58,11 @@ def generate(
     ] = None,
     demography: Annotated[
         Optional[str],
-        typer.Option("--demography", "-d", help="Filter by demography (nationality, race, religion, gender, ethnicity)"),
+        typer.Option("--demography", "-d", help="Filter by demography"),
     ] = None,
     dimension: Annotated[
         Optional[str],
-        typer.Option("--dimension", "-D", help="Filter by dimension (wgi, onet, qs)"),
+        typer.Option("--dimension", "-D", help="Filter by dimension"),
     ] = None,
     no_metadata: Annotated[
         bool,
@@ -108,7 +114,7 @@ def generate(
             demographies = [Demography(demography.lower())]
         except ValueError:
             console.print(f"[red]Error: Invalid demography '{demography}'[/red]")
-            console.print("Valid options: nationality, race, religion, gender, ethnicity")
+            console.print(f"Valid options: {format_valid_options(VALID_DEMOGRAPHIES)}")
             raise typer.Exit(1)
     
     # Parse dimension filter
@@ -118,7 +124,7 @@ def generate(
             dimensions_filter = [StereotypeDimension(dimension.lower())]
         except ValueError:
             console.print(f"[red]Error: Invalid dimension '{dimension}'[/red]")
-            console.print("Valid options: wgi, onet, qs")
+            console.print(f"Valid options: {format_valid_options(VALID_DIMENSIONS)}")
             raise typer.Exit(1)
     
     # Count prompts
@@ -147,8 +153,6 @@ def generate(
             count = exporter.export_jsonl(prompts, organize_by_dimension=True)
         elif format == "json":
             count = exporter.export_json(prompts)
-        elif format == "yaml":
-            count = exporter.export_yaml(prompts)
         else:
             console.print(f"[red]Error: Unknown format '{format}'[/red]")
             raise typer.Exit(1)
@@ -182,8 +186,8 @@ def list_tasks() -> None:
 def list_dimensions(
     dimensions_file: Annotated[
         Path,
-        typer.Argument(help="Path to dimensions YAML file"),
-    ] = Path("data/dimensions.yaml"),
+        typer.Argument(help="Path to dimensions catalog Python file"),
+    ] = DIMENSIONS_FILE,
 ) -> None:
     """List all stereotype dimensions and their pairs."""
     
@@ -226,7 +230,7 @@ def list_groups(
     groups_path: Annotated[
         Path,
         typer.Argument(help="Path to groups CSV file or directory"),
-    ] = Path("data/groups"),
+    ] = GROUPS_DIR,
     demography: Annotated[
         Optional[str],
         typer.Option("--demography", "-d", help="Filter by demography"),
@@ -251,6 +255,7 @@ def list_groups(
             filtered = groups.get_groups_by_demography(dem)
         except ValueError:
             console.print(f"[red]Error: Invalid demography '{demography}'[/red]")
+            console.print(f"Valid options: {format_valid_options(VALID_DEMOGRAPHIES)}")
             raise typer.Exit(1)
     
     # Group by demography for display
@@ -300,12 +305,12 @@ def show_task(
 def preview(
     dimensions_file: Annotated[
         Path,
-        typer.Option("--dimensions", help="Path to dimensions YAML file"),
-    ] = Path("data/dimensions.yaml"),
+        typer.Option("--dimensions", help="Path to dimensions catalog Python file"),
+    ] = DIMENSIONS_FILE,
     groups_path: Annotated[
         Path,
         typer.Option("--groups", "-g", help="Path to groups CSV file or directory"),
-    ] = Path("data/groups"),
+    ] = GROUPS_DIR,
     task_id: Annotated[
         int,
         typer.Option("--task", "-t", help="Task ID to preview (1-7)"),
@@ -316,7 +321,7 @@ def preview(
     ] = None,
     dimension: Annotated[
         Optional[str],
-        typer.Option("--dimension", "-D", help="Filter by dimension (wgi, onet, qs)"),
+        typer.Option("--dimension", "-D", help="Filter by dimension"),
     ] = None,
 ) -> None:
     """Preview generated prompts without saving to files."""
@@ -353,6 +358,7 @@ def preview(
             dims_to_show = [d for d in dims_to_show if d.dimension == dim_filter]
         except ValueError:
             console.print(f"[red]Error: Invalid dimension '{dimension}'[/red]")
+            console.print(f"Valid options: {format_valid_options(VALID_DIMENSIONS)}")
             raise typer.Exit(1)
     
     # Get groups to preview
@@ -389,12 +395,12 @@ def preview(
 def stats(
     dimensions_file: Annotated[
         Path,
-        typer.Option("--dimensions", help="Path to dimensions YAML file"),
-    ] = Path("data/dimensions.yaml"),
+        typer.Option("--dimensions", help="Path to dimensions catalog Python file"),
+    ] = DIMENSIONS_FILE,
     groups_path: Annotated[
         Path,
         typer.Option("--groups", "-g", help="Path to groups CSV file or directory"),
-    ] = Path("data/groups"),
+    ] = GROUPS_DIR,
 ) -> None:
     """Show statistics about dimensions and groups."""
     
@@ -475,53 +481,56 @@ def init(
     ] = Path("./data"),
 ) -> None:
     """Initialize sample dimension and group files."""
-    import yaml
-    
     output_dir.mkdir(parents=True, exist_ok=True)
     groups_dir = output_dir / "groups"
     groups_dir.mkdir(exist_ok=True)
     
-    # Sample dimensions
-    sample_dimensions = {
-        "name": "Sample Stereotype Dimensions",
-        "version": "1.0.0",
-        "description": "Sample dimension catalog",
-        "dimensions": [
-            {
-                "dimension": "qs",
-                "name": "Quality of Society",
-                "description": "Social behavior and cultural values",
-                "pairs": [
-                    {
-                        "pair_id": "friendliness",
-                        "positive_label": "friendly",
-                        "negative_label": "unfriendly",
-                    },
-                    {
-                        "pair_id": "honesty",
-                        "positive_label": "honest",
-                        "negative_label": "dishonest",
-                    },
-                ],
-            },
-            {
-                "dimension": "onet",
-                "name": "O*NET Occupational",
-                "description": "Work skills and professional behavior",
-                "pairs": [
-                    {
-                        "pair_id": "work_ethic",
-                        "positive_label": "hardworking",
-                        "negative_label": "lazy",
-                    },
-                ],
-            },
-        ],
-    }
-    
-    dim_file = output_dir / "dimensions.yaml"
-    with open(dim_file, "w") as f:
-        yaml.dump(sample_dimensions, f, default_flow_style=False, sort_keys=False)
+    sample_dimensions = '''DIMENSION_CATALOG = {
+    "name": "Sample Stereotype Dimensions",
+    "version": "1.0.0",
+    "description": "Sample dimension catalog",
+    "dimensions": [
+        {
+            "dimension": "sp",
+            "name": "Stereotype Prevalence",
+            "description": "Basic social stereotypes",
+            "pairs": [
+                {
+                    "pair_id": "friendliness",
+                    "parent_category": "Social Traits",
+                    "positive_label": "friendly",
+                    "negative_label": "unfriendly",
+                    "description": "Basic social warmth stereotype",
+                },
+                {
+                    "pair_id": "honesty",
+                    "parent_category": "Social Traits",
+                    "positive_label": "honest",
+                    "negative_label": "dishonest",
+                    "description": "Basic integrity stereotype",
+                },
+            ],
+        },
+        {
+            "dimension": "onet",
+            "name": "O*NET Occupational",
+            "description": "Work skills and professional behavior",
+            "pairs": [
+                {
+                    "pair_id": "work_ethic",
+                    "parent_category": "Achievement Orientation",
+                    "positive_label": "hardworking",
+                    "negative_label": "lazy",
+                    "description": "Simple work ethic stereotype",
+                },
+            ],
+        },
+    ],
+}
+'''
+
+    dim_file = output_dir / "dimensions.py"
+    dim_file.write_text(sample_dimensions)
     
     console.print(f"[green]✓[/green] Created {dim_file}")
     
@@ -538,7 +547,7 @@ muslim,Muslim,religion,
     console.print(f"[green]✓[/green] Created {groups_file}")
     console.print("\n[dim]Edit these files to customize your dataset.[/dim]")
     console.print("\n[cyan]File structure:[/cyan]")
-    console.print("  • dimensions.yaml - Stereotype pairs (WGI, O*NET, QS)")
+    console.print("  • dimensions.py - Stereotype pairs as Python data")
     console.print("  • groups/*.csv - Demographic groups")
 
 

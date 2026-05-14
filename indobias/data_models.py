@@ -1,7 +1,7 @@
 """Data models for stereotype dimensions, groups, and prompt metadata.
 
 Separates:
-- Stereotype dimensions/pairs (WGI, O*NET, QS) - defined in YAML
+- Stereotype dimensions/pairs (WGI, O*NET, QS) - defined in Python
 - Demographic groups - loaded from CSV files
 """
 
@@ -9,20 +9,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
-# =============================================================================
-# DEMOGRAPHY TO DIMENSION MAPPING
-# =============================================================================
-DEMOGRAPHY_DIMENSION_MAP: dict[str, str] = {
-    "ethnicity": "sp",
-    "gender": "sp",
-    "lembaga": "wgi",
-    # "media": "onet",
-    "name": "sp",
-    # "organisasi_bisnis": "onet",   
-    "political_party": "wgi",
-    "religion": "sp",
-    "university": "onet",
-}
+from .config import DEMOGRAPHY_TO_DIMENSION
 
 
 class Demography(str, Enum):
@@ -55,12 +42,16 @@ class StereotypeDimension(str, Enum):
     QS_RANKINGS = "qs_rankings"
     SP = "sp"
 # =============================================================================
-# STEREOTYPE PAIRS (from YAML)
+# STEREOTYPE PAIRS
 # =============================================================================
 class StereotypePair(BaseModel):
     """A pair of positive and negative stereotype labels within a dimension."""
     
     pair_id: str = Field(..., description="Unique identifier for this stereotype pair")
+    parent_category: str | None = Field(
+        None,
+        description="Higher-level category for this pair within the dimension hierarchy",
+    )
     positive_label: str = Field(..., description="The positive stereotype phrase")
     negative_label: str = Field(..., description="The negative stereotype phrase")
     description: str | None = Field(None, description="Optional description of the pair")
@@ -90,7 +81,7 @@ class DimensionDefinition(BaseModel):
 class DimensionCatalog(BaseModel):
     """Catalog of all stereotype dimensions with their pairs.
     
-    This is loaded from YAML and contains the reusable stereotype pairs
+    This is loaded from Python data and contains the reusable stereotype pairs
     organized by dimension (WGI, O*NET, QS).
     """
     
@@ -142,7 +133,7 @@ class Group(BaseModel):
     
     def get_dimension(self) -> StereotypeDimension:
         """Get the stereotype dimension associated with this group's demography."""
-        dimension_str = DEMOGRAPHY_DIMENSION_MAP.get(self.demography.value)
+        dimension_str = DEMOGRAPHY_TO_DIMENSION.get(self.demography.value)
         if dimension_str is None:
             raise ValueError(f"No dimension mapping found for demography: {self.demography.value}")
         return StereotypeDimension(dimension_str)
@@ -178,6 +169,10 @@ class PromptMetadata(BaseModel):
     group_id: str = Field(..., description="Group identifier")
     dimension: StereotypeDimension = Field(..., description="Stereotype dimension")
     stereotype_pair: str = Field(..., description="Stereotype pair identifier")
+    parent_category: str | None = Field(
+        None,
+        description="Higher-level category for the selected stereotype pair",
+    )
     positive_label: str = Field(..., description="The positive stereotype phrase")
     negative_label: str = Field(..., description="The negative stereotype phrase")
     task_id: int = Field(..., ge=1, le=7, description="Task ID (1-7)")

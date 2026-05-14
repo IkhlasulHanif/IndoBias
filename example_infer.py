@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
+
+from indobias.config import DEFAULT_OUTPUT_DIR, GROUPS_DIR
 from indobias.models import QwenModel
 
 def find_prompts_files(base_dir: Path) -> list[Path]:
@@ -28,7 +30,7 @@ def load_all_prompts(prompt_files: list[Path]) -> list[dict]:
 
 def main():
     # Setup paths
-    output_dir = Path("output")
+    output_dir = DEFAULT_OUTPUT_DIR
     models_dir = output_dir / "models"
     models_dir.mkdir(parents=True, exist_ok=True)
     
@@ -37,7 +39,7 @@ def main():
     
     if not prompt_files:
         print("❌ No prompts found.")
-        print("\nRun: uv run indobias generate --groups data/groups/ethnicity_indonesia.csv")
+        print(f"\nRun: uv run indobias generate --groups {GROUPS_DIR / 'ethnicity_indonesia.csv'}")
         return
     
     print(f"Found {len(prompt_files)} prompt file(s):")

@@ -68,7 +68,7 @@ def load_model(model_name: str, model_id: str, **kwargs):
 ### 4. Two-Step Pipeline
 
 #### Step 1: Generate Prompts
-- Loads dimension catalog from `data/dimensions.yaml`
+- Loads dimension catalog from `data/dimensions.py`
 - Loads groups from `data/groups/*.csv`
 - Generates prompts using `generate_prompts()` from `indobias.generator`
 - Exports to `output/data/{dimension}/prompts.jsonl`
