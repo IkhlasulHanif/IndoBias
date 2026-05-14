@@ -3,14 +3,14 @@ import gc
 import shutil
 import pandas as pd
 import torch
+import torch.nn.functional as F
 
 from utils.maskedlm_compat import patch_lmppl_transformers_compat
 from lmppl import MaskedLM
 from config import *
 from dataclasses import fields
 from argparse import ArgumentParser
-from evaluate import load
-from transformers import AutoConfig
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 patch_lmppl_transformers_compat()
 
@@ -45,8 +45,6 @@ files_to_process = experiment_cfg.file_to_process
 model_list = experiment_cfg.model_list
 batch_size = experiment_cfg.batch_size
 device = experiment_cfg.device
-
-perplexity = load("perplexity", module_type="metric")
 
 def get_hf_home():
     return os.path.expanduser(os.environ.get("HF_HOME", "~/.cache/huggingface"))
@@ -99,6 +97,60 @@ def validate_encoder_model(model_id: str):
     )
 
 
+def _resolve_decoder_device(model):
+    if hasattr(model, "device"):
+        return model.device
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def build_decoder_scorer(model_id: str):
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype="auto",
+        device_map=device,
+    )
+    model.eval()
+    return tokenizer, model
+
+
+@torch.inference_mode()
+def get_decoder_perplexity(tokenizer, model, inputs: list[str], batch_size: int, max_length: int = 256):
+    model_device = _resolve_decoder_device(model)
+    perplexities: list[float] = []
+
+    for batch_start in range(0, len(inputs), batch_size):
+        batch = inputs[batch_start: batch_start + batch_size]
+        encoded = tokenizer(
+            batch,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+        )
+        encoded = {key: value.to(model_device) for key, value in encoded.items()}
+
+        outputs = model(**encoded)
+        shift_logits = outputs.logits[:, :-1, :].contiguous()
+        shift_labels = encoded["input_ids"][:, 1:].contiguous()
+        shift_attention = encoded["attention_mask"][:, 1:].contiguous()
+
+        token_losses = F.cross_entropy(
+            shift_logits.view(-1, shift_logits.size(-1)),
+            shift_labels.view(-1),
+            reduction="none",
+        ).view(shift_labels.size())
+
+        valid_token_count = shift_attention.sum(dim=1).clamp_min(1)
+        sequence_nll = (token_losses * shift_attention).sum(dim=1) / valid_token_count
+        perplexities.extend(torch.exp(sequence_nll).detach().cpu().tolist())
+
+    return perplexities
+
+
 dataset_frames = []
 for file_to_process in files_to_process:
     dataset_frames.append(
@@ -112,6 +164,7 @@ for file_to_process in files_to_process:
 # evaluate models
 for model_type, model_id in model_list:
     scorer = None
+    decoder_tokenizer = None
     try:
         print(f"Evaluating model: {model_id}")
         if model_type == 'encoder':
@@ -121,6 +174,8 @@ for model_type, model_id in model_list:
                 max_length=256,
                 device_map=device,
             )
+        elif model_type == 'decoder':
+            decoder_tokenizer, scorer = build_decoder_scorer(model_id)
 
         for dataset_name, df in dataset_frames:
             print(f"  -> Running on {dataset_name}")
@@ -134,13 +189,12 @@ for model_type, model_id in model_list:
             inputs.extend(protrope_texts)
             inputs.extend(antitrope_texts)
             if model_type == 'decoder':
-                results = perplexity.compute(
-                    predictions=inputs,
-                    model_id=model_id,
+                results = get_decoder_perplexity(
+                    tokenizer=decoder_tokenizer,
+                    model=scorer,
+                    inputs=inputs,
                     batch_size=batch_size,
-                    device=device
                 )
-                results = results['perplexities']
             else:
                 results = scorer.get_perplexity(inputs, batch_size=batch_size)
             
