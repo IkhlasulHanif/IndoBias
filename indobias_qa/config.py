@@ -5,9 +5,12 @@ from pathlib import Path
 # Paths
 PACKAGE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_DIR.parent
-DATA_DIR = PROJECT_ROOT / "data"
+
+# Dataset assets live inside the package directory after the repo reshuffle.
+DATA_DIR = PACKAGE_DIR / "data"
 GROUPS_DIR = DATA_DIR / "groups"
 DIMENSIONS_FILE = DATA_DIR / "dimensions.py"
+
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output"
 DEFAULT_RAW_RESULTS_DIR = PROJECT_ROOT / "results" / "raw"
 
