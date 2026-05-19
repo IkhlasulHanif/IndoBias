@@ -45,6 +45,31 @@ def normalize_model_name(model_name: str) -> str:
     )
 
 
+def export_rows_by_demography_and_file(
+    output_dir: Path,
+    rows: list[dict[str, object]],
+    model_name: str,
+) -> None:
+    """Export rows into one XLSX file per source CSV under demography directories."""
+    grouped_rows: dict[tuple[str, str, str], list[dict[str, object]]] = {}
+    normalized_model_name = normalize_model_name(model_name)
+
+    for row in rows:
+        demography = str(row["demography"])
+        source_file = str(row.get("source_file") or demography)
+        key = (demography, normalized_model_name, source_file)
+        grouped_rows.setdefault(key, []).append(row)
+
+    base_output_dir = Path(output_dir)
+    base_output_dir.mkdir(parents=True, exist_ok=True)
+
+    for (demography, normalized_name, source_file), grouped in grouped_rows.items():
+        demography_dir = base_output_dir / demography
+        demography_dir.mkdir(parents=True, exist_ok=True)
+        filepath = demography_dir / f"{normalized_name}__{source_file}.xlsx"
+        pd.DataFrame(grouped).to_excel(filepath, index=False)
+
+
 def generate_single_prompt(
     group: Group,
     dimension_def: DimensionDefinition,
@@ -286,17 +311,14 @@ class PromptExporter:
         model_name: str = "prompts",
     ) -> int:
         """Export prompts into one XLSX file per source CSV under demography directories."""
-        grouped_rows: dict[tuple[str, str, str], list[dict[str, str | int | None]]] = {}
+        rows: list[dict[str, object]] = []
         count = 0
-        normalized_model_name = normalize_model_name(model_name)
 
         for prompt in prompts:
             metadata = prompt.metadata
             demography = metadata.demography.value
             source_file = metadata.source_file or demography
-            key = (demography, normalized_model_name, source_file)
-
-            grouped_rows.setdefault(key, []).append(
+            rows.append(
                 {
                     "model_name": model_name,
                     "prompt_id": metadata.prompt_id,
@@ -318,11 +340,7 @@ class PromptExporter:
             )
             count += 1
 
-        for (demography, normalized_model_name, source_file), rows in grouped_rows.items():
-            demography_dir = self.output_dir / demography
-            demography_dir.mkdir(parents=True, exist_ok=True)
-            filepath = demography_dir / f"{normalized_model_name}__{source_file}.xlsx"
-            pd.DataFrame(rows).to_excel(filepath, index=False)
+        export_rows_by_demography_and_file(self.output_dir, rows, model_name)
 
         return count
     

@@ -56,7 +56,7 @@ cd "$REPO_ROOT"
 
 for model in "${QWEN_MODELS[@]}"; do
     echo "Running model: $model"
-    python3 -m indobias_qa.commands generate --model-name "$model"
+    python3 -m indobias_qa.model_runner --model-name "$model"
 done
 
 echo ""
