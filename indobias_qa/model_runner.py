@@ -5,16 +5,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from tqdm import tqdm
 
 from .config import DEFAULT_RAW_RESULTS_DIR, DIMENSIONS_FILE, GROUPS_DIR
 from .generator import export_rows_by_demography_and_file, generate_prompts, load_dimension_catalog, load_groups_from_csv, load_groups_from_directory
 from .models.qwen import QwenModel
 from .models.openai_batch import parse_demographies, parse_dimensions, parse_task_ids
-
-console = Console()
-
 
 def load_groups(groups_path: Path):
     if groups_path.is_dir():
@@ -35,6 +31,7 @@ def run(
     temperature: float,
     top_p: float,
     num_generations: int,
+    batch_size: int,
     device: str | None,
     enable_thinking: bool,
 ) -> None:
@@ -50,7 +47,7 @@ def run(
         )
     )
     total = len(prompts)
-    console.print(f"Total prompts to run: {total}")
+    print(f"Total prompts to run: {total}")
     if total == 0:
         return
 
@@ -65,10 +62,18 @@ def run(
     )
 
     rows: list[dict[str, object]] = []
-    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
-        task_handle = progress.add_task(f"Running {model_name}...", total=total)
-        for prompt in prompts:
-            response = qwen_model.generate(prompt.prompt_text, max_new_tokens=max_new_tokens)
+    for i in tqdm(range(0, total, batch_size), desc=f"Running {model_name}"):
+        prompt_batch = prompts[i:i + batch_size]
+        responses_batch = qwen_model.batch_generate(
+            [prompt.prompt_text for prompt in prompt_batch],
+            num_generations=num_generations,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            batch_size=batch_size,
+        )
+        for prompt, responses in zip(prompt_batch, responses_batch):
+            response = responses[0] if responses else ""
             metadata = prompt.metadata
             demography_value = metadata.demography.value
             source_file = metadata.source_file or demography_value
@@ -93,10 +98,9 @@ def run(
                     "response": response,
                 }
             )
-            progress.advance(task_handle)
 
     export_rows_by_demography_and_file(output_dir, rows, model_name)
-    console.print(f"[green]✓[/green] Wrote {len(rows)} model responses to {output_dir}")
+    print(f"Wrote {len(rows)} model responses to {output_dir}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -112,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=0.9)
     parser.add_argument("--num-generations", type=int, default=1)
+    parser.add_argument("--batch-size", type=int, default=3)
     parser.add_argument("--device")
     parser.add_argument("--enable-thinking", action="store_true")
     return parser
@@ -131,6 +136,7 @@ def main() -> None:
         temperature=args.temperature,
         top_p=args.top_p,
         num_generations=args.num_generations,
+        batch_size=args.batch_size,
         device=args.device,
         enable_thinking=args.enable_thinking,
     )

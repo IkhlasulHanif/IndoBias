@@ -229,6 +229,63 @@ class QwenModel:
             )
             for output in outputs
         ]
+
+    def batch_generate(
+        self,
+        prompts: List[str],
+        num_generations: Optional[int] = None,
+        max_new_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+        batch_size: int = 3,
+        **kwargs,
+    ) -> List[List[str]]:
+        """Generate text for multiple prompts in batches."""
+        if batch_size <= 0:
+            raise ValueError("batch_size must be greater than 0")
+
+        results: List[List[str]] = []
+        batch_num_generations = num_generations or self.num_generations
+
+        for i in range(0, len(prompts), batch_size):
+            batch = prompts[i:i + batch_size]
+            formatted_batch = [self._format_prompt(prompt) for prompt in batch]
+            inputs = self.tokenizer(
+                formatted_batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            )
+            inputs = self._move_inputs_to_device(inputs)
+            gen_kwargs = self._build_generation_kwargs(
+                num_generations=num_generations,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                **kwargs,
+            )
+
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    **gen_kwargs,
+                )
+
+            for j in range(len(batch)):
+                start = j * batch_num_generations
+                end = start + batch_num_generations
+                prompt_outputs = outputs[start:end]
+                results.append(
+                    [
+                        self._strip_prompt_from_output(
+                            self.tokenizer.decode(output, skip_special_tokens=True),
+                            formatted_batch[j],
+                        )
+                        for output in prompt_outputs
+                    ]
+                )
+
+        return results
     
     def __repr__(self) -> str:
         return f"QwenModel(model={self.model_name}, device={self.device})"
