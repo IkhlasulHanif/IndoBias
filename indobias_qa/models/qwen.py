@@ -64,6 +64,9 @@ class QwenModel:
             model_name,
             trust_remote_code=True
         )
+        self.tokenizer.padding_side = "left"
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         
         # Load model
         dtype = torch.float16 if self.device != "cpu" else torch.float32
