@@ -9,7 +9,14 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from .config import DEFAULT_OUTPUT_DIR, DIMENSIONS_FILE, GROUPS_DIR, VALID_DEMOGRAPHIES, VALID_DIMENSIONS
+from .config import (
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_RAW_RESULTS_DIR,
+    DIMENSIONS_FILE,
+    GROUPS_DIR,
+    VALID_DEMOGRAPHIES,
+    VALID_DIMENSIONS,
+)
 from .generator import (
     PromptExporter,
     count_prompts,
@@ -47,11 +54,15 @@ def generate(
     output_dir: Annotated[
         Path,
         typer.Option("--output", "-o", help="Output directory for generated prompts"),
-    ] = DEFAULT_OUTPUT_DIR,
+    ] = DEFAULT_RAW_RESULTS_DIR,
     format: Annotated[
         str,
-        typer.Option("--format", "-f", help="Output format: files, jsonl, json"),
-    ] = "jsonl",
+        typer.Option("--format", "-f", help="Output format: xlsx, files, jsonl, json"),
+    ] = "xlsx",
+    model_name: Annotated[
+        str,
+        typer.Option("--model-name", help="Model name used to partition XLSX exports"),
+    ] = "prompts",
     tasks: Annotated[
         Optional[str],
         typer.Option("--tasks", "-t", help="Comma-separated task IDs (e.g., '1,3,5') or 'all'"),
@@ -147,7 +158,9 @@ def generate(
         
         prompts = generate_prompts(groups, catalog, task_ids, demographies, dimensions_filter)
         
-        if format == "files":
+        if format == "xlsx":
+            count = exporter.export_xlsx_by_demography_and_file(prompts, model_name=model_name)
+        elif format == "files":
             count = exporter.export_individual_files(prompts, include_metadata=not no_metadata)
         elif format == "jsonl":
             count = exporter.export_jsonl(prompts, organize_by_dimension=True)

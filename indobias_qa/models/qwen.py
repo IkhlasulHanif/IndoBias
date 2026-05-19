@@ -1,5 +1,6 @@
 """Qwen model implementation with MPS support for Apple Silicon."""
 
+import re
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import Optional, List, Dict, Any
@@ -12,10 +13,11 @@ class QwenModel:
         self,
         model_name: str = "Qwen/Qwen3-8B",
         device: Optional[str] = None,
-        max_length: int = 2048,
-        num_generations: int = 10,
-        temperature: float = 0.9,
+        max_length: int = 1024,
+        num_generations: int = 1,
+        temperature: float = 0.0,
         top_p: float = 0.9,
+        enable_thinking: bool = False,
     ):
         """
         Initialize Qwen model with MPS support.
@@ -27,16 +29,18 @@ class QwenModel:
             num_generations: Default number of responses to sample per prompt
             temperature: Sampling temperature
             top_p: Nucleus sampling parameter
+            enable_thinking: Whether to allow Qwen3/Qwen3.5 reasoning mode
         """
         self.model_name = model_name
         self.max_length = max_length
         self.num_generations = num_generations
         self.temperature = temperature
         self.top_p = top_p
+        self.enable_thinking = enable_thinking
         self.chat_template_kwargs = {
             "tokenize": False,
             "add_generation_prompt": True,
-            "enable_thinking": False,
+            "enable_thinking": enable_thinking,
         }
         
         # Auto-detect device if not specified
@@ -50,7 +54,10 @@ class QwenModel:
         else:
             self.device = device
         
-        print(f"Loading {model_name} on {self.device}...")
+        print(
+            f"Loading {model_name} on {self.device} "
+            f"(enable_thinking={self.enable_thinking})..."
+        )
         
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -97,23 +104,46 @@ class QwenModel:
         **kwargs,
     ) -> Dict[str, Any]:
         num_generations = num_generations or self.num_generations
-        return {
+        resolved_temperature = self.temperature if temperature is None else temperature
+        resolved_top_p = self.top_p if top_p is None else top_p
+        do_sample = resolved_temperature > 0
+
+        gen_kwargs = {
             "max_new_tokens": max_new_tokens or self.max_length,
             "num_return_sequences": num_generations,
-            "temperature": temperature or self.temperature,
-            "top_p": top_p or self.top_p,
-            "do_sample": True,
+            "do_sample": do_sample,
             "pad_token_id": self.tokenizer.eos_token_id,
-            **kwargs,
         }
+        if do_sample:
+            gen_kwargs["temperature"] = resolved_temperature
+            gen_kwargs["top_p"] = resolved_top_p
+
+        gen_kwargs.update(kwargs)
+        return gen_kwargs
 
     def _move_inputs_to_device(self, inputs: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         return {key: value.to(self.device) for key, value in inputs.items()}
 
     def _strip_prompt_from_output(self, generated_text: str, formatted_prompt: str) -> str:
         if generated_text.startswith(formatted_prompt):
-            return generated_text[len(formatted_prompt):].strip()
-        return generated_text
+            generated_text = generated_text[len(formatted_prompt):].strip()
+        return self._strip_thinking_content(generated_text)
+
+    def _strip_thinking_content(self, generated_text: str) -> str:
+        """Strip Qwen reasoning blocks as a safety net for hybrid models."""
+        if self.enable_thinking:
+            return generated_text
+
+        without_closed_blocks = re.sub(
+            r"<think>.*?</think>",
+            "",
+            generated_text,
+            flags=re.DOTALL,
+        ).strip()
+        if without_closed_blocks.startswith("<think>"):
+            _, _, tail = without_closed_blocks.partition("</think>")
+            return tail.strip() if tail else ""
+        return without_closed_blocks
     
     def generate(
         self,

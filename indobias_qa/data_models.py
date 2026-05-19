@@ -127,6 +127,7 @@ class Group(BaseModel):
     group_name: str = Field(..., description="Display name (e.g., 'Javanese', 'Muslim')")
     demography: Demography = Field(..., description="Demographic category")
     country: str | None = Field(None, description="Associated country (optional)")
+    source_file: str | None = Field(None, description="Source CSV filename stem")
     
     class Config:
         frozen = True
@@ -165,9 +166,11 @@ class PromptMetadata(BaseModel):
     
     prompt_id: str = Field(..., description="Unique identifier for this prompt")
     demography: Demography = Field(..., description="Demographic category")
+    source_file: str | None = Field(None, description="Source CSV filename stem")
     group: str = Field(..., description="The target group name")
     group_id: str = Field(..., description="Group identifier")
     dimension: StereotypeDimension = Field(..., description="Stereotype dimension")
+    dimension_name: str | None = Field(None, description="Human-readable dimension name")
     stereotype_pair: str = Field(..., description="Stereotype pair identifier")
     parent_category: str | None = Field(
         None,

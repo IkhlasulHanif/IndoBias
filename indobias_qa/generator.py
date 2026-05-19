@@ -7,9 +7,12 @@ from pathlib import Path
 import runpy
 from typing import Iterator
 
+import pandas as pd
+
 from .config import infer_group_metadata
 from .data_models import (
     Demography,
+    DimensionDefinition,
     DimensionCatalog,
     GeneratedPrompt,
     Group,
@@ -32,9 +35,19 @@ def generate_prompt_id(
     return hashlib.sha256(content.encode()).hexdigest()[:12]
 
 
+def normalize_model_name(model_name: str) -> str:
+    """Normalize a model name for use in directory and file metadata."""
+    return (
+        model_name.strip()
+        .replace("/", "_")
+        .replace("\\", "_")
+        .replace(" ", "_")
+    )
+
+
 def generate_single_prompt(
     group: Group,
-    dimension: StereotypeDimension,
+    dimension_def: DimensionDefinition,
     pair: StereotypePair,
     task: TaskDefinition,
 ) -> GeneratedPrompt:
@@ -48,11 +61,18 @@ def generate_single_prompt(
     )
     
     metadata = PromptMetadata(
-        prompt_id=generate_prompt_id(group.group_id, dimension.value, pair.pair_id, task.task_id),
+        prompt_id=generate_prompt_id(
+            group.group_id,
+            dimension_def.dimension.value,
+            pair.pair_id,
+            task.task_id,
+        ),
         demography=group.demography,
+        source_file=group.source_file,
         group=group.group_name,
         group_id=group.group_id,
-        dimension=dimension,
+        dimension=dimension_def.dimension,
+        dimension_name=dimension_def.name,
         stereotype_pair=pair.pair_id,
         parent_category=pair.parent_category,
         positive_label=pair.positive_label,
@@ -113,7 +133,7 @@ def generate_prompts(
         for dim_def in dims_to_use:
             for pair in dim_def.pairs:
                 for task in tasks:
-                    yield generate_single_prompt(group, dim_def.dimension, pair, task)
+                    yield generate_single_prompt(group, dim_def, pair, task)
 
 
 def count_prompts(
@@ -259,6 +279,52 @@ class PromptExporter:
             json.dump(all_prompts, f, indent=2)
         
         return len(all_prompts)
+
+    def export_xlsx_by_demography_and_file(
+        self,
+        prompts: Iterator[GeneratedPrompt],
+        model_name: str = "prompts",
+    ) -> int:
+        """Export prompts into one XLSX file per source CSV under demography directories."""
+        grouped_rows: dict[tuple[str, str, str], list[dict[str, str | int | None]]] = {}
+        count = 0
+        normalized_model_name = normalize_model_name(model_name)
+
+        for prompt in prompts:
+            metadata = prompt.metadata
+            demography = metadata.demography.value
+            source_file = metadata.source_file or demography
+            key = (demography, normalized_model_name, source_file)
+
+            grouped_rows.setdefault(key, []).append(
+                {
+                    "model_name": model_name,
+                    "prompt_id": metadata.prompt_id,
+                    "demography": demography,
+                    "source_file": source_file,
+                    "group_id": metadata.group_id,
+                    "group": metadata.group,
+                    "dimension": metadata.dimension.value,
+                    "dimension_name": metadata.dimension_name,
+                    "stereotype_pair": metadata.stereotype_pair,
+                    "parent_category": metadata.parent_category,
+                    "positive_label": metadata.positive_label,
+                    "negative_label": metadata.negative_label,
+                    "task_id": metadata.task_id,
+                    "task_name": metadata.task_name,
+                    "task_complexity_level": metadata.task_complexity_level,
+                    "prompt": prompt.prompt_text,
+                }
+            )
+            count += 1
+
+        for (demography, normalized_model_name, source_file), rows in grouped_rows.items():
+            demography_dir = self.output_dir / demography
+            demography_dir.mkdir(parents=True, exist_ok=True)
+            filepath = demography_dir / f"{normalized_model_name}__{source_file}.xlsx"
+            pd.DataFrame(rows).to_excel(filepath, index=False)
+
+        return count
     
 def load_dimension_catalog(filepath: Path) -> DimensionCatalog:
     """Load stereotype dimension catalog from a Python module."""
@@ -302,6 +368,7 @@ def load_groups_from_csv(filepath: Path) -> GroupCollection:
                 group_name=row["group_name"].strip(),
                 demography=demography,
                 country=country,
+                source_file=filepath.stem,
             )
             groups.append(group)
     

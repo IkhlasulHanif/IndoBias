@@ -25,17 +25,26 @@ read -p "Choice [1-5]: " choice
 case $choice in
     1)
         MY_GROUPS="ethnicity_indonesia gender"
-        MY_MODEL="Qwen/Qwen3-0.6B"
+        QWEN_MODELS=(
+            "Qwen/Qwen3-8B"
+            "Qwen/Qwen3.5-9B"
+        )
         ;;
     2)
         MY_GROUPS="ethnicity_indonesia gender religion"
-        MY_MODEL="Qwen/Qwen3-0.6B"
+        QWEN_MODELS=(
+            "Qwen/Qwen3-8B"
+            "Qwen/Qwen3.5-9B"
+        )
         ;;
     3)
         python3 main.py --list-groups
         echo ""
         read -p "Enter groups (space-separated): " MY_GROUPS
-        MY_MODEL="Qwen/Qwen3-0.6B"
+        QWEN_MODELS=(
+            "Qwen/Qwen3-8B"
+            "Qwen/Qwen3.5-9B"
+        )
         ;;
     4)
         python3 main.py --list-groups
@@ -58,21 +67,27 @@ fi
 
 # Run pipeline
 echo ""
-echo "Running: Groups=$MY_GROUPS, Model=$MY_MODEL"
+echo "Running: Groups=$MY_GROUPS"
+echo "Models:"
+for model in "${QWEN_MODELS[@]}"; do
+    echo "  • $model"
+done
 echo ""
 
-python3 main.py --groups ${MY_GROUPS} --model-id "${MY_MODEL}"
+for model in "${QWEN_MODELS[@]}"; do
+    echo "Running model: $model"
+    python3 main.py --groups ${MY_GROUPS} --model-id "$model"
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo "✗ Test failed for $model"
+        exit 1
+    fi
+done
 
 # Done
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "✓ Test completed!"
-    if [ -d "output/models" ]; then
-        latest=$(ls -t output/models | head -1)
-        echo "Results: output/models/$latest"
-    fi
-else
-    echo ""
-    echo "✗ Test failed"
-    exit 1
+echo ""
+echo "✓ Test completed!"
+if [ -d "output/models" ]; then
+    echo "Recent result directories:"
+    ls -t output/models | head -2 | sed 's/^/  • output\/models\//'
 fi

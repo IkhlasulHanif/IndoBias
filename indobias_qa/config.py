@@ -9,6 +9,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 GROUPS_DIR = DATA_DIR / "groups"
 DIMENSIONS_FILE = DATA_DIR / "dimensions.py"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output"
+DEFAULT_RAW_RESULTS_DIR = PROJECT_ROOT / "results" / "raw"
 
 # Valid CLI values
 VALID_DIMENSIONS = ("wgi", "onet", "qs_rankings", "sp")
