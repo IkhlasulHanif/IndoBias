@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .config import DEFAULT_RAW_RESULTS_DIR, DIMENSIONS_FILE, GROUPS_DIR
 from .generator import export_rows_by_demography_and_file, generate_prompts, load_dimension_catalog, load_groups_from_csv, load_groups_from_directory
-from .models.qwen import QwenModel
+from .models import HFChatModel
 from .models.openai_batch import parse_demographies, parse_dimensions, parse_task_ids
 
 def load_groups(groups_path: Path):
@@ -51,7 +51,7 @@ def run(
     if total == 0:
         return
 
-    qwen_model = QwenModel(
+    model = HFChatModel(
         model_name=model_name,
         device=device,
         max_length=max_new_tokens,
@@ -64,7 +64,7 @@ def run(
     rows: list[dict[str, object]] = []
     for i in tqdm(range(0, total, batch_size), desc=f"Running {model_name}"):
         prompt_batch = prompts[i:i + batch_size]
-        responses_batch = qwen_model.batch_generate(
+        responses_batch = model.batch_generate(
             [prompt.prompt_text for prompt in prompt_batch],
             num_generations=num_generations,
             max_new_tokens=max_new_tokens,

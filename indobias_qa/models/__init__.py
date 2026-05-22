@@ -1,5 +1,5 @@
 """Model implementations for inference."""
 
-from .qwen import QwenModel
+from .hf_chat import HFChatModel, QwenModel
 
-__all__ = ["QwenModel"]
+__all__ = ["HFChatModel", "QwenModel"]
