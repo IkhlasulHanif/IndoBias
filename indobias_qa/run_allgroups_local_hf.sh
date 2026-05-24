@@ -25,8 +25,7 @@ else
 fi
 
 LOCAL_MODELS=(
-    "Qwen/Qwen3-8B"
-    "Qwen/Qwen3.5-9B"
+    "aisingapore/Gemma-SEA-LION-v3-9B-IT"
     "aisingapore/Apertus-SEA-LION-v4-8B-IT"
 )
 
