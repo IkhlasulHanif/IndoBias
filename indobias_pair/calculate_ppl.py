@@ -5,6 +5,8 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 
+from pathlib import Path
+
 from utils.maskedlm_compat import patch_lmppl_transformers_compat
 from lmppl import MaskedLM
 from config import *
@@ -13,6 +15,10 @@ from argparse import ArgumentParser
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 patch_lmppl_transformers_compat()
+
+
+REPO_ROOT = Path(__file__).resolve().parent
+PAIR_RAW_RESULT_DIR = REPO_ROOT / "result" / "pairs" / "raw"
 
 
 # function to load args from config.py
@@ -203,10 +209,9 @@ for model_type, model_id in model_list:
             df_clone['antitrope_perplexity'] = results[len(df_clone):]
 
             # output comprehensive report
-            output_path = os.path.join('result', 'raw', dataset_name)
-            os.makedirs(output_path, exist_ok=True)
-            full_output_path = os.path.join(
-                output_path,
+            output_path = PAIR_RAW_RESULT_DIR / dataset_name
+            output_path.mkdir(parents=True, exist_ok=True)
+            full_output_path = output_path / (
                 f"{model_type}_{model_id.replace('/', '_').replace('.', '_')}.xlsx"
             )
             df_clone.to_excel(full_output_path)
