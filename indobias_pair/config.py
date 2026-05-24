@@ -72,6 +72,7 @@ ENCODER_MODELS: list[tuple[str, str]] = list(product(['encoder'],
 class ExperimentConfig:
     model_list: tuple[tuple[str, str], ...] = tuple(DECODER_MODELS + ENCODER_MODELS)
     file_to_process: tuple[str, ...] = (
+        "indobias_pair/data/IndoBias_ID.csv",
         "indobias_pair/data/IndoBias_Javanese.csv",
         "indobias_pair/data/IndoBias_Makassar.csv",
         "indobias_pair/data/IndoBias_Sundanese.csv",
