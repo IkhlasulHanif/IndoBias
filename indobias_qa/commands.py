@@ -30,6 +30,7 @@ from .models.openai_batch import (
     DEFAULT_MODELS as DEFAULT_OPENAI_BATCH_MODELS,
     download_outputs as openai_batch_download_outputs,
     export_outputs as openai_batch_export_outputs,
+    export_outputs_from_roots as openai_batch_export_outputs_from_roots,
     prepare_batches as openai_batch_prepare_batches,
     refresh_status as openai_batch_refresh_status,
     submit_batches as openai_batch_submit_batches,
@@ -436,6 +437,10 @@ def openai_batch_prepare(
     models: Annotated[list[str], typer.Option("--model", help="OpenAI model to include; repeat for multiple models")] = list(DEFAULT_OPENAI_BATCH_MODELS),
     batch_root: Annotated[Path, typer.Option("--batch-root", help="Directory for batch request and output files")] = DEFAULT_BATCH_ROOT,
     max_output_tokens: Annotated[int, typer.Option("--max-output-tokens", help="max_output_tokens sent to the OpenAI Responses API")] = 1024,
+    num_generations: Annotated[int, typer.Option("--num-generations", help="Number of repeated stochastic requests per prompt")] = 1,
+    generation_start: Annotated[int, typer.Option("--generation-start", help="First generation_index to assign when splitting repeated batches")] = 0,
+    temperature: Annotated[float | None, typer.Option("--temperature", help="Sampling temperature sent to the OpenAI Responses API")] = None,
+    top_p: Annotated[float | None, typer.Option("--top-p", help="Nucleus sampling parameter sent to the OpenAI Responses API")] = None,
 ) -> None:
     openai_batch_prepare_batches(
         batch_root=batch_root,
@@ -446,6 +451,10 @@ def openai_batch_prepare(
         dimension=dimension,
         models=models,
         max_output_tokens=max_output_tokens,
+        num_generations=num_generations,
+        generation_start=generation_start,
+        temperature=temperature,
+        top_p=top_p,
     )
 
 
@@ -483,6 +492,17 @@ def openai_batch_export(
     openai_batch_export_outputs(batch_root=batch_root, raw_output_dir=output_dir)
 
 
+@cli.command(name="openai-batch-export-many")
+def openai_batch_export_many(
+    batch_roots: Annotated[list[Path], typer.Argument(help="Batch roots to merge/export")],
+    output_dir: Annotated[Path, typer.Option("--output", "-o", help="Directory for final Excel outputs")] = DEFAULT_RAW_RESULTS_DIR,
+) -> None:
+    openai_batch_export_outputs_from_roots(
+        batch_roots=batch_roots,
+        raw_output_dir=output_dir,
+    )
+
+
 @cli.command(name="openai-batch-prepare-submit")
 def openai_batch_prepare_submit(
     dimensions_file: Annotated[Path, typer.Option("--dimensions", help="Path to dimensions catalog Python file")] = DIMENSIONS_FILE,
@@ -493,6 +513,10 @@ def openai_batch_prepare_submit(
     models: Annotated[list[str], typer.Option("--model", help="OpenAI model to include; repeat for multiple models")] = list(DEFAULT_OPENAI_BATCH_MODELS),
     batch_root: Annotated[Path, typer.Option("--batch-root", help="Directory for batch request and output files")] = DEFAULT_BATCH_ROOT,
     max_output_tokens: Annotated[int, typer.Option("--max-output-tokens", help="max_output_tokens sent to the OpenAI Responses API")] = 1024,
+    num_generations: Annotated[int, typer.Option("--num-generations", help="Number of repeated stochastic requests per prompt")] = 1,
+    generation_start: Annotated[int, typer.Option("--generation-start", help="First generation_index to assign when splitting repeated batches")] = 0,
+    temperature: Annotated[float | None, typer.Option("--temperature", help="Sampling temperature sent to the OpenAI Responses API")] = None,
+    top_p: Annotated[float | None, typer.Option("--top-p", help="Nucleus sampling parameter sent to the OpenAI Responses API")] = None,
 ) -> None:
     openai_batch_prepare(
         dimensions_file=dimensions_file,
@@ -503,6 +527,10 @@ def openai_batch_prepare_submit(
         models=models,
         batch_root=batch_root,
         max_output_tokens=max_output_tokens,
+        num_generations=num_generations,
+        generation_start=generation_start,
+        temperature=temperature,
+        top_p=top_p,
     )
     openai_batch_submit(batch_root=batch_root)
 

@@ -100,6 +100,7 @@ def iter_batch_rows(output_file: Path, metadata_by_id: dict[str, dict[str, Any]]
             rows.append(
                 {
                     "prompt_id": metadata["prompt_id"],
+                    "generation_index": metadata.get("generation_index", 0),
                     "demography": metadata["demography"],
                     "source_file": metadata.get("source_file") or metadata["demography"],
                     "group_id": metadata["group_id"],
@@ -140,6 +141,10 @@ def prepare_batches(
     dimension: str | None = None,
     models: list[str] | tuple[str, ...] = DEFAULT_MODELS,
     max_output_tokens: int = 1024,
+    num_generations: int = 1,
+    generation_start: int = 0,
+    temperature: float | None = None,
+    top_p: float | None = None,
 ) -> None:
     requests_dir = batch_root / "requests"
     requests_dir.mkdir(parents=True, exist_ok=True)
@@ -154,7 +159,12 @@ def prepare_batches(
     )
 
     total = count_prompts(groups, catalog, task_ids, demographies, dimensions)
-    print(f"Preparing {total} prompts across {len(models)} model(s).")
+    generation_stop = generation_start + num_generations
+    print(
+        f"Preparing {total} prompts x {num_generations} generations "
+        f"(generation_index {generation_start}..{generation_stop - 1}) "
+        f"across {len(models)} model(s)."
+    )
 
     prompts = list(generate_prompts(groups, catalog, task_ids, demographies, dimensions))
     manifest: dict[str, dict[str, Any]] = load_manifest(batch_root)
@@ -165,20 +175,32 @@ def prepare_batches(
         metadata_path = requests_dir / f"{normalized_model}.metadata.jsonl"
 
         with request_path.open("w", encoding="utf-8") as request_file, metadata_path.open("w", encoding="utf-8") as metadata_file:
-            for prompt in prompts:
-                custom_id = prompt.metadata.prompt_id
-                request = {
-                    "custom_id": custom_id,
-                    "method": "POST",
-                    "url": "/v1/responses",
-                    "body": build_request_body(model_name, prompt.prompt_text, max_output_tokens),
-                }
-                request_file.write(json.dumps(request, ensure_ascii=False) + "\n")
+            for prompt_index, prompt in enumerate(prompts):
+                for generation_index in range(generation_start, generation_stop):
+                    custom_id = (
+                        f"{prompt.metadata.prompt_id}:"
+                        f"row-{prompt_index:06d}:"
+                        f"gen-{generation_index:02d}"
+                    )
+                    request = {
+                        "custom_id": custom_id,
+                        "method": "POST",
+                        "url": "/v1/responses",
+                        "body": build_request_body(
+                            model_name,
+                            prompt.prompt_text,
+                            max_output_tokens,
+                            temperature=temperature,
+                            top_p=top_p,
+                        ),
+                    }
+                    request_file.write(json.dumps(request, ensure_ascii=False) + "\n")
 
-                metadata = prompt.metadata.model_dump()
-                metadata["prompt"] = prompt.prompt_text
-                metadata["custom_id"] = custom_id
-                metadata_file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
+                    metadata = prompt.metadata.model_dump()
+                    metadata["prompt"] = prompt.prompt_text
+                    metadata["custom_id"] = custom_id
+                    metadata["generation_index"] = generation_index
+                    metadata_file.write(json.dumps(metadata, ensure_ascii=False) + "\n")
 
         manifest[model_name] = asdict(
             BatchRecord(
@@ -193,14 +215,25 @@ def prepare_batches(
     save_manifest(batch_root, manifest)
 
 
-def build_request_body(model_name: str, prompt_text: str, max_output_tokens: int) -> dict[str, Any]:
+def build_request_body(
+    model_name: str,
+    prompt_text: str,
+    max_output_tokens: int,
+    *,
+    temperature: float | None = None,
+    top_p: float | None = None,
+) -> dict[str, Any]:
     body: dict[str, Any] = {
         "model": model_name,
         "input": prompt_text,
         "max_output_tokens": max_output_tokens,
     }
+    if temperature is not None:
+        body["temperature"] = temperature
+    if top_p is not None:
+        body["top_p"] = top_p
     if model_name.startswith("gpt-5"):
-        body["reasoning"] = {"effort": "none"}
+        body["reasoning"] = {"effort": "minimal"}
         body["text"] = {"verbosity": "low"}
     return body
 
@@ -261,7 +294,7 @@ def download_outputs(batch_root: Path = DEFAULT_BATCH_ROOT) -> None:
 
     for model_name, record in manifest.items():
         output_file_id = record.get("output_file_id")
-        if record.get("status") != "completed" or not output_file_id:
+        if record.get("status") != "completed":
             print(f"Skipping {model_name}: batch not completed.")
             continue
 
@@ -269,9 +302,12 @@ def download_outputs(batch_root: Path = DEFAULT_BATCH_ROOT) -> None:
         output_path = outputs_dir / f"{normalized_model}.output.jsonl"
         errors_path = outputs_dir / f"{normalized_model}.errors.jsonl"
 
-        download_file_content(output_file_id, output_path, api_key)
-        record["output_file"] = str(output_path)
-        print(f"Downloaded {output_path}")
+        if output_file_id:
+            download_file_content(output_file_id, output_path, api_key)
+            record["output_file"] = str(output_path)
+            print(f"Downloaded {output_path}")
+        else:
+            print(f"No output file for {model_name}.")
 
         error_file_id = record.get("error_file_id")
         if error_file_id:
@@ -286,21 +322,32 @@ def export_outputs(
     batch_root: Path = DEFAULT_BATCH_ROOT,
     raw_output_dir: Path = DEFAULT_RAW_RESULTS_DIR,
 ) -> None:
-    manifest = load_manifest(batch_root)
+    export_outputs_from_roots([batch_root], raw_output_dir)
+
+
+def export_outputs_from_roots(
+    batch_roots: list[Path],
+    raw_output_dir: Path = DEFAULT_RAW_RESULTS_DIR,
+) -> None:
     grouped_rows: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
 
-    for model_name, record in manifest.items():
-        output_file = record.get("output_file")
-        metadata_file = record.get("metadata_file")
-        if not output_file or not metadata_file:
-            print(f"Skipping {model_name}: missing downloaded output or metadata file.")
-            continue
+    for batch_root in batch_roots:
+        manifest = load_manifest(batch_root)
+        for model_name, record in manifest.items():
+            output_file = record.get("output_file")
+            metadata_file = record.get("metadata_file")
+            if not output_file or not metadata_file:
+                print(
+                    f"Skipping {model_name} in {batch_root}: "
+                    "missing downloaded output or metadata file."
+                )
+                continue
 
-        metadata_by_id = load_jsonl_index(Path(metadata_file), "custom_id")
+            metadata_by_id = load_jsonl_index(Path(metadata_file), "custom_id")
 
-        for row in iter_batch_rows(Path(output_file), metadata_by_id):
-            row["model_name"] = model_name
-            grouped_rows.setdefault(output_key(model_name, row), []).append(row)
+            for row in iter_batch_rows(Path(output_file), metadata_by_id):
+                row["model_name"] = model_name
+                grouped_rows.setdefault(output_key(model_name, row), []).append(row)
 
     for (demography, normalized_model, source_file), rows in grouped_rows.items():
         target_dir = raw_output_dir / demography

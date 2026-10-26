@@ -13,13 +13,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-SUMMARY_JSON = Path("indobias_qa/results/analysis/sp_summary.json")
-OUTPUT_DIR = Path("indobias_qa/results/analysis/spidercharts")
+BASE_DIR = Path(__file__).resolve().parents[1]
+SUMMARY_JSON = BASE_DIR / "results" / "analysis" / "sp_summary.json"
+OUTPUT_DIR = BASE_DIR / "results" / "analysis" / "spidercharts"
 
 CURATED_PANELS = [
     {
         "filename": "qwen3_8b_lembaga_top5_spider.png",
-        "title": "Qwen3-8B: Selected Institutions",
+        "title": "Qwen3-8B: Selected Institutions (Anonymized)",
         "model_name": "Qwen/Qwen3-8B",
         "demography": "lembaga",
         "source_file": "lembaga",
@@ -32,13 +33,13 @@ CURATED_PANELS = [
             "Voice and Accountability",
         ],
         "series": [
-            {"label": "Kemenhan (Ministry of Defense)", "entity": "Kemenhan"},
-            {"label": "BIN (State Intelligence Agency)", "entity": "BIN"},
-            {"label": "Kemenkumham (Ministry of Law and Human Rights)", "entity": "Kemenkumham"},
-            {"label": "Kominfo (Ministry of Communication and Informatics)", "entity": "Kominfo"},
-            {"label": "BKN (National Civil Service Agency)", "entity": "BKN"},
+            {"label": "Gov Institution A", "entity": "Kemenhan", "anonymized": True},
+            {"label": "Gov Institution B", "entity": "BIN", "anonymized": True},
+            {"label": "Gov Institution C", "entity": "Kemenkumham", "anonymized": True},
+            {"label": "Gov Institution D", "entity": "Kominfo", "anonymized": True},
+            {"label": "Gov Institution E", "entity": "BKN", "anonymized": True},
         ],
-        "note": "Each colored line is one institution; acronyms are expanded in the legend. Higher values mean higher stereotype positivity (SP).",
+        "note": "Each colored line is one government institution. Labels are anonymized. Higher values mean higher stereotype positivity (SP).",
     },
     {
         "filename": "qwen3_8b_political_party_top5_spider.png",
@@ -79,9 +80,29 @@ CURATED_PANELS = [
             {"label": "Bajau", "entity": "Bajau (Sama-Bajau)"},
             {"label": "Javanese", "entity": "Jawa"},
             {"label": "Sundanese", "entity": "Sunda"},
-            {"label": "Tionghoa", "entity": "Tionghoa"},
+            {"label": "Chinese", "entity": "Tionghoa"},
         ],
         "note": "Each colored line is one ethnic group. Higher values mean higher stereotype positivity (SP).",
+    },
+    {
+        "filename": "qwen3_8b_name_top3_spider.png",
+        "title": "Qwen3-8B: Selected Names (Anonymized)",
+        "model_name": "Qwen/Qwen3-8B",
+        "demography": "name",
+        "source_file": "name",
+        "legend_ncol": 1,
+        "legend_y": 0.08,
+        "categories": [
+            "Basic Human Needs",
+            "Foundations of Wellbeing",
+            "Opportunity",
+        ],
+        "series": [
+            {"label": "Presidential Candidate X", "entity": "Ganjar Pranowo", "anonymized": True},
+            {"label": "Presidential Candidate Y", "entity": "Anies Baswedan", "anonymized": True},
+            {"label": "Presidential Candidate Z", "entity": "Prabowo Subianto", "anonymized": True},
+        ],
+        "note": "Each colored line is one presidential candidate name. Labels are anonymized and order-randomized. Higher values mean higher stereotype positivity (SP).",
     },
     {
         "filename": "qwen3_8b_religion_top5_spider.png",
@@ -97,8 +118,8 @@ CURATED_PANELS = [
         "series": [
             {"label": "Islam", "entity": "Islam"},
             {"label": "Catholicism", "entity": "Katolik"},
-            {"label": "Protestant Christianity", "entity": "Kristen"},
-            {"label": "Momolianisme", "entity": "Momolianisme"},
+            {"label": "Protestanism", "entity": "Kristen"},
+            {"label": "Fanomba Adu", "entity": "Fanömba Adu"},
             {"label": "Ugamo Malim", "entity": "Ugamo Malim"},
             {"label": "Buddhism", "entity": "Budha"},
         ],
@@ -183,7 +204,11 @@ def resolve_series_values(
         entity = str(series["entity"])
         values_by_cat = entity_index[(model_name, demography, source_file, entity)]
         filtered = {category: values_by_cat[category] for category in categories}
-        metadata = {"type": "entity", "entity": entity}
+        metadata = {"type": "entity"}
+        if bool(series.get("anonymized")):
+            metadata["anonymized"] = True
+        else:
+            metadata["entity"] = entity
         return label, [filtered[category] for category in categories], filtered, metadata
 
     raise KeyError(f"Series must define 'entity': {series}")
@@ -198,10 +223,10 @@ def plot_panel(entity_index: dict[tuple[str, str, str, str], dict[str, float]], 
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(categories, fontsize=10)
+    ax.set_xticklabels(categories, fontsize=15)
     ax.set_ylim(0, 100)
     ax.set_yticks([20, 40, 60, 80, 100])
-    ax.set_yticklabels(["20", "40", "60", "80", "100"], fontsize=9)
+    ax.set_yticklabels(["20", "40", "60", "80", "100"], fontsize=14)
     ax.grid(alpha=0.35)
     ax.spines["polar"].set_alpha(0.35)
 
@@ -228,10 +253,10 @@ def plot_panel(entity_index: dict[tuple[str, str, str, str], dict[str, float]], 
             }
         )
 
-    ax.set_title(str(panel["title"]), pad=26, fontsize=13, fontweight="bold")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=3, frameon=False, fontsize=10)
-    fig.text(0.5, 0.03, str(panel["note"]), ha="center", va="center", fontsize=10)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    legend_ncol = int(panel.get("legend_ncol", 3))
+    legend_y = float(panel.get("legend_y", -0.03))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, legend_y), ncol=legend_ncol, frameon=False, fontsize=14)
+    fig.tight_layout()
     fig.savefig(OUTPUT_DIR / str(panel["filename"]), dpi=220, bbox_inches="tight")
     plt.close(fig)
     return summary_rows

@@ -65,3 +65,34 @@ Thumbs.db
 
 # other
 envlinux/
+secrets/
+indobias_qa/models/secrets/
+indobias_qa/results/raw_sahabat_probe/
+indobias_qa/results/raw_modal_download/
+
+# Paper source (kept local)
+EACL_AACL_IndoBias/
+
+# Benchmark data and experiment results are private (available on request)
+data/
+result/
+results/
+results 2/
+indobias_pair/data/
+indobias_pair/result/
+indobias_pair/indobias_pair/
+indobias_qa/data/IndoBiasADJ/
+indobias_qa/data/groups/
+indobias_qa/results/
+indobias_qa/results 2/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.parquet
+*.png
+*.pdf
+*.tex
+*.ipynb
+indobias_pair/analysis/*.md
+.ruff_cache/

@@ -144,6 +144,8 @@ def generate_prompts(
             # Use the mapped dimension for this group's demography
             try:
                 group_dimension = group.get_dimension()
+                if dimensions and group_dimension not in dimensions:
+                    continue
                 dims_to_use = [d for d in catalog.dimensions if d.dimension == group_dimension]
             except ValueError:
                 # Skip groups without a dimension mapping
@@ -167,23 +169,34 @@ def count_prompts(
     task_ids: list[int] | None = None,
     demographies: list[Demography] | None = None,
     dimensions: list[StereotypeDimension] | None = None,
+    use_demography_mapping: bool = True,
 ) -> int:
     """Count how many prompts would be generated without actually generating them."""
     tasks_count = len(task_ids) if task_ids else 7
-    
-    # Count pairs in selected dimensions
-    dims_to_use = catalog.dimensions
-    if dimensions:
-        dims_to_use = [d for d in dims_to_use if d.dimension in dimensions]
-    
-    total_pairs = sum(len(d.pairs) for d in dims_to_use)
-    
-    # Count groups
+
     groups_to_use = groups.groups
     if demographies:
         groups_to_use = [g for g in groups_to_use if g.demography in demographies]
-    
-    return len(groups_to_use) * total_pairs * tasks_count
+
+    if not use_demography_mapping:
+        dims_to_use = catalog.dimensions
+        if dimensions:
+            dims_to_use = [d for d in dims_to_use if d.dimension in dimensions]
+        return len(groups_to_use) * sum(len(d.pairs) for d in dims_to_use) * tasks_count
+
+    total = 0
+    for group in groups_to_use:
+        try:
+            group_dimension = group.get_dimension()
+        except ValueError:
+            continue
+        if dimensions and group_dimension not in dimensions:
+            continue
+        dimension_def = catalog.get_dimension(group_dimension)
+        if dimension_def is None:
+            continue
+        total += len(dimension_def.pairs) * tasks_count
+    return total
 
 
 class PromptExporter:
