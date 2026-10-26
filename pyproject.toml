@@ -1,7 +1,7 @@
 [project]
-name = "indobias-task-complexity"
+name = "indobias"
 version = "0.1.0"
-description = "Task complexity framework for testing stereotype expression in LLMs"
+description = "IndoBias: a dual-track, culturally grounded benchmark for LLM bias evaluation in Indonesian languages"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -18,17 +18,18 @@ dependencies = [
     "lmppl>=0.3.2",
     "evaluate>=0.4.6",
     "openpyxl>=3.1.5",
+    "openai>=1.0.0",
 ]
 
 [project.scripts]
-indobias = "indobias.cli:app"
+indobias = "indobias_qa.commands:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["indobias"]
+packages = ["indobias_qa"]
 
 [dependency-groups]
 dev = [
