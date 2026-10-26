@@ -13,7 +13,7 @@ IndoBias evaluates social bias in language models in Indonesian and three local 
 
 ## Data access
 
-The benchmark data and the raw model outputs are **not** included in this repository. They are available for research use on request. Please contact Ikhlasul Akmal Hanif (ikhlasulakmalh@gmail.com).
+The benchmark data and the raw model outputs are **not** included in this repository. They are available for research use on request. Please contact Ikhlasul Akmal Hanif (ikhlasul.hanif@mbzuai.ac.ae) or Muhammad Falensi Azmi (muhammad.azmi@mbzuai.ac.ae).
 
 Once you have the data, place it at these paths (all git-ignored):
 
