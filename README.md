@@ -69,3 +69,7 @@ The `indobias_qa/run_allgroups_*.sh` scripts run the model sets used in the pape
   url           = {https://arxiv.org/abs/2606.01260}
 }
 ```
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE). The benchmark data is not covered by this license; its terms are provided with the data on request.

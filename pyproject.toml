@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "IndoBias: a dual-track, culturally grounded benchmark for LLM bias evaluation in Indonesian languages"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
 dependencies = [
     "pydantic>=2.5.0",
     "rich>=13.7.0",
