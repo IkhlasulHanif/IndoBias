@@ -5,14 +5,14 @@
 <div align="center">
   <p style="font-size: 20px;">by
     <a href="https://scholar.google.com/citations?user=_l_utfMAAAAJ&hl=en">Ikhlasul Akmal Hanif</a><sup>1*</sup>,
-    Muhammad Falensi Azmi<sup>3*</sup>,
+    Muhammad Falensi Azmi<sup>1*</sup>,
     Filbert Aurelian Tjiaranata<sup>2</sup>,
     Eryawan Presma Yulianrifat<sup>2</sup>,
     <a href="https://www.fajrikoto.com/">Fajri Koto</a><sup>1</sup>
   </p>
   <p>
     <sup>*</sup>Main Authors<br>
-    <sup>1</sup>MBZUAI, <sup>2</sup>Universitas Indonesia, <sup>3</sup>Independent Researcher
+    <sup>1</sup>MBZUAI, <sup>2</sup>Universitas Indonesia
   </p>
 
 [![arXiv](https://img.shields.io/badge/arXiv-2606.01260-b31b1b.svg)](https://arxiv.org/abs/2606.01260)
