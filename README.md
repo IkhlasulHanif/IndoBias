@@ -1,6 +1,28 @@
-# IndoBias
+<div align="center">
+  <h1>IndoBias: A Dual Track Culturally Grounded Benchmark for LLMs Bias Evaluation in Indonesian Languages</h1>
+</div>
 
-Code for **IndoBias: A Dual Track Culturally Grounded Benchmark for LLMs Bias Evaluation in Indonesian Languages** ([arXiv:2606.01260](https://arxiv.org/abs/2606.01260)).
+<div align="center">
+  <p style="font-size: 20px;">by
+    <a href="https://scholar.google.com/citations?user=_l_utfMAAAAJ&hl=en">Ikhlasul Akmal Hanif</a><sup>1*</sup>,
+    Muhammad Falensi Azmi<sup>3*</sup>,
+    Filbert Aurelian Tjiaranata<sup>2</sup>,
+    Eryawan Presma Yulianrifat<sup>2</sup>,
+    <a href="https://www.fajrikoto.com/">Fajri Koto</a><sup>1</sup>
+  </p>
+  <p>
+    <sup>*</sup>Main Authors<br>
+    <sup>1</sup>MBZUAI, <sup>2</sup>Universitas Indonesia, <sup>3</sup>Independent Researcher
+  </p>
+
+[![arXiv](https://img.shields.io/badge/arXiv-2606.01260-b31b1b.svg)](https://arxiv.org/abs/2606.01260)
+[![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-yellow.svg)](https://huggingface.co/datasets/ikhlasulakmalh/IndoBias)
+[![GitHub](https://img.shields.io/badge/GitHub-Code-blue?logo=github)](https://github.com/IkhlasulHanif/IndoBias)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+</div>
+
+---
 
 IndoBias evaluates social bias in language models in Indonesian and three local languages: Javanese, Sundanese and Makassar. It has two tracks:
 
@@ -13,13 +35,16 @@ IndoBias evaluates social bias in language models in Indonesian and three local 
 
 ## Data access
 
-The benchmark data and the raw model outputs are **not** included in this repository. They are available for research use on request. Please contact Ikhlasul Akmal Hanif (ikhlasul.hanif@mbzuai.ac.ae) or Muhammad Falensi Azmi (muhammad.azmi@mbzuai.ac.ae).
+The benchmark data is not included in this repository. It is hosted as a gated dataset on Hugging Face: [ikhlasulakmalh/IndoBias](https://huggingface.co/datasets/ikhlasulakmalh/IndoBias). Request access on that page, and the authors will review your request. For other questions, including access to the raw model outputs, contact Ikhlasul Akmal Hanif (ikhlasul.hanif@mbzuai.ac.ae) or Muhammad Falensi Azmi (muhammad.azmi@mbzuai.ac.ae).
 
-Once you have the data, place it at these paths (all git-ignored):
+Once approved, download the data into the paths the code expects (all git-ignored):
 
-```
-indobias_pair/data/IndoBias_{ID,Javanese,Sundanese,Makassar}.csv
-indobias_qa/data/groups/*.csv
+```bash
+hf download ikhlasulakmalh/IndoBias --repo-type dataset --include "pair/*" --local-dir hf_data
+mkdir -p indobias_pair/data indobias_qa/data/groups
+cp hf_data/pair/*.csv indobias_pair/data/
+hf download ikhlasulakmalh/IndoBias --repo-type dataset --include "qa/groups/*" --local-dir hf_data
+cp hf_data/qa/groups/*.csv indobias_qa/data/groups/
 ```
 
 ## Setup

@@ -96,3 +96,5 @@ indobias_qa/results 2/
 *.ipynb
 indobias_pair/analysis/*.md
 .ruff_cache/
+
+hf_data/
