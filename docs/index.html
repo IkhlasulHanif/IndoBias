@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IndoBias</title>
+<meta name="description" content="IndoBias: a dual-track, culturally grounded benchmark for LLM bias evaluation in Indonesian, Javanese, Sundanese and Makassar.">
+<meta property="og:title" content="IndoBias: Culturally Grounded LLM Bias Evaluation in Indonesian Languages">
+<meta property="og:description" content="544 contrastive pairs in four languages and 336 Indonesian demographic groups across seven task formats.">
+<meta property="og:image" content="assets/hook.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --abyss: #0a1a2f;
+  --ink: #12283f;
+  --ink-2: #3d5470;
+  --body: #1f3246;
+  --muted: #6b7f95;
+  --tide: #1a6599;
+  --lagoon: #2aa1b3;
+  --accent: #0055be;
+  --accent-soft: #e8f1fc;
+  --paper: #f5f7fa;
+  --card: #ffffff;
+  --line: rgba(18, 40, 63, 0.1);
+  --line-2: rgba(18, 40, 63, 0.16);
+  --warn-bg: #fff6ea;
+  --warn-line: #f0d2a4;
+  --warn-ink: #7a4b0c;
+  --bar-a: #e8914a;
+  --bar-b: #4f9fd8;
+  --bar-c: #58b9a6;
+  --blob-1: #b8cff3;
+  --blob-2: #a6d8e8;
+  --header-bg: rgba(233, 241, 246, 0.78);
+  --header-bg-scrolled: rgba(255, 255, 255, 0.9);
+  --code-bg: #0f2236;
+  --code-ink: #dbe7f3;
+  --grad: linear-gradient(100deg, #0055be 0%, #1a6599 45%, #2aa1b3 100%);
+  --sans: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --abyss: #eef4fb; --ink: #dbe6f2; --ink-2: #a9bbcf; --body: #cdd9e6; --muted: #8a9db2;
+    --tide: #6fb3e6; --lagoon: #58c7d6; --accent: #7db4ff; --accent-soft: #15283f;
+    --paper: #0b1420; --card: #111d2c; --line: rgba(220, 232, 245, 0.1); --line-2: rgba(220, 232, 245, 0.16);
+    --warn-bg: #2a1f10; --warn-line: #5a4220; --warn-ink: #f2cf98;
+    --blob-1: #1c3a66; --blob-2: #164a5a;
+    --header-bg: rgba(11, 20, 32, 0.72); --header-bg-scrolled: rgba(11, 20, 32, 0.92);
+    --code-bg: #08111c;
+    --grad: linear-gradient(100deg, #7db4ff 0%, #6fb3e6 45%, #58c7d6 100%);
+  }
+}
+:root[data-theme="dark"] {
+  --abyss: #eef4fb; --ink: #dbe6f2; --ink-2: #a9bbcf; --body: #cdd9e6; --muted: #8a9db2;
+  --tide: #6fb3e6; --lagoon: #58c7d6; --accent: #7db4ff; --accent-soft: #15283f;
+  --paper: #0b1420; --card: #111d2c; --line: rgba(220, 232, 245, 0.1); --line-2: rgba(220, 232, 245, 0.16);
+  --warn-bg: #2a1f10; --warn-line: #5a4220; --warn-ink: #f2cf98;
+  --blob-1: #1c3a66; --blob-2: #164a5a;
+  --header-bg: rgba(11, 20, 32, 0.72); --header-bg-scrolled: rgba(11, 20, 32, 0.92);
+  --code-bg: #08111c;
+  --grad: linear-gradient(100deg, #7db4ff 0%, #6fb3e6 45%, #58c7d6 100%);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; display: block; }
+
+/* Header */
+.site-header {
+  position: fixed; inset: 0 0 auto; z-index: 50; height: 64px;
+  background: var(--header-bg);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s, background .3s, box-shadow .3s;
+}
+.site-header.is-scrolled { background: var(--header-bg-scrolled); border-color: var(--line); box-shadow: 0 6px 24px rgba(10, 26, 47, .04); }
+.nav-wrap { width: min(100% - 32px, 1040px); height: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { font-weight: 800; font-size: 18px; letter-spacing: -0.01em; color: var(--abyss); }
+.brand span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand:hover { text-decoration: none; }
+.site-nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.site-nav::-webkit-scrollbar { display: none; }
+.site-nav a { padding: 6px 12px; border-radius: 999px; font-size: 14.5px; color: var(--ink-2); white-space: nowrap; transition: color .2s, background .2s; }
+.site-nav a:hover, .site-nav a.is-active { color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+
+/* Hero */
+.post-hero { position: relative; overflow: hidden; padding: 128px 0 56px; }
+.hero-bg { position: absolute; inset: 0; pointer-events: none; }
+.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; animation: drift 22s ease-in-out infinite alternate; }
+.b1 { width: 520px; height: 520px; left: -140px; top: -120px; background: var(--blob-1); }
+.b2 { width: 460px; height: 460px; right: -120px; top: 40px; background: var(--blob-2); animation-delay: -8s; }
+@keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, 30px) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .blob { animation: none; } }
+
+.post-shell { position: relative; width: min(100% - 32px, 880px); margin: 0 auto; }
+.eyebrow-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tide); }
+.eyebrow-row .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--tide); opacity: .55; }
+.post-title { font-size: clamp(38px, 6vw, 64px); line-height: 1.04; font-weight: 800; letter-spacing: -0.025em; color: var(--abyss); margin: 16px 0 0; text-wrap: balance; }
+.grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.post-sub { display: block; margin-top: .45em; font-size: clamp(18px, 2.4vw, 24px); line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; color: var(--abyss); text-wrap: balance; }
+.post-meta { margin: 24px 0 0; font-size: 15px; color: var(--ink-2); line-height: 1.7; }
+.authors-line .nm { white-space: nowrap; }
+.post-meta sup { font-size: .68em; color: var(--muted); margin-left: 1px; }
+.affil-line { margin-top: 4px; font-size: 14px; color: var(--muted); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
+  font-size: 14.5px; font-weight: 600; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line-2); box-shadow: 0 1px 0 rgba(10, 26, 47, .03);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.btn:hover { text-decoration: none; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(10, 26, 47, .08); border-color: var(--accent); }
+.btn svg { width: 17px; height: 17px; flex: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn-primary { color: #06101c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary { color: #06101c; } }
+
+/* Body */
+.post { padding: 8px 0 72px; }
+.post p { margin: 0 0 1.35em; font-size: 18px; line-height: 1.78; color: var(--body); }
+.post h2 { font-size: clamp(26px, 3.4vw, 34px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; color: var(--abyss); margin: 64px 0 18px; }
+.post h2 .grad { padding-right: .05em; }
+.post .run-in { font-weight: 800; font-size: 21px; letter-spacing: -0.01em; color: var(--abyss); margin-right: .25em; }
+.post .run-in.grad { color: transparent; }
+.lead-p::first-letter { font-weight: 800; font-size: 2.1em; line-height: 1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.warn {
+  display: flex; gap: 12px; align-items: flex-start; margin: 0 0 32px; padding: 14px 18px; border-radius: 14px;
+  background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); font-size: 14.5px; line-height: 1.55;
+}
+.warn svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+
+.post-stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 8px 0 40px; padding: 0; }
+.post-stats div { text-align: center; padding: 6px 8px; }
+.post-stats div + div { border-left: 1px solid var(--line-2); }
+.post-stats dt { font-size: clamp(30px, 4.4vw, 42px); font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--abyss); font-variant-numeric: tabular-nums; }
+.post-stats dd { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+
+.fig { margin: 24px 0 36px; padding: 20px 20px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 0 rgba(10, 26, 47, .03); }
+.fig-head { margin-bottom: 14px; }
+.fig-title { font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--abyss); }
+.fig-sub { margin-top: 4px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.fig img { border-radius: 10px; }
+.fig .on-white { background: #fff; padding: 10px; }
+.fig-wide { width: min(100% - 32px, 1040px); margin-left: auto; margin-right: auto; }
+.fig-scroll { overflow-x: auto; }
+.fig-scroll img { min-width: 720px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.grid3 figure { margin: 0; }
+.grid3 figcaption { margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; }
+
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 8px 0 28px; }
+.track-card { padding: 22px 22px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; }
+.track-card .tag { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tide); }
+.track-card h3 { margin: 6px 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; color: var(--abyss); }
+.track-card p { margin: 0 0 12px; font-size: 15.5px; line-height: 1.65; color: var(--body); }
+.track-card ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--ink-2); line-height: 1.7; }
+
+.pull { position: relative; margin: 12px 0 44px; padding: 8px 0 0 58px; font-size: clamp(22px, 2.8vw, 29px); font-weight: 700; line-height: 1.3; letter-spacing: -0.015em; color: var(--abyss); }
+.pull::before { content: "\201C"; position: absolute; left: 0; top: -16px; font-size: 96px; line-height: 1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pull em { font-style: normal; color: var(--accent); }
+
+/* Bar charts */
+.bars { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 60px; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-2); }
+.bar-row .lbl { font-weight: 600; color: var(--ink); line-height: 1.3; }
+.bar-row .lbl small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+.bar-track { position: relative; height: 14px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar-track i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--c); width: var(--w); transform-origin: left; transform: scaleX(0); transition: transform 1s cubic-bezier(.2, .8, .2, 1); }
+.fig.in .bar-track i { transform: scaleX(1); }
+.bar-row .val { font-weight: 700; color: var(--abyss); text-align: right; font-variant-numeric: tabular-nums; }
+.axis-note { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+
+table.tasks { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+table.tasks th, table.tasks td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.tasks th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+table.tasks td:first-child { font-weight: 800; color: var(--tide); width: 36px; font-variant-numeric: tabular-nums; }
+table.tasks td:nth-child(2) { font-weight: 600; color: var(--ink); white-space: nowrap; }
+table.tasks td:last-child { color: var(--ink-2); }
+
+/* CTA + citation */
+.post-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 28px; margin-top: 56px; padding: 26px 28px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(10, 26, 47, .06); }
+.post-cta h3 { margin: 0; font-size: 22px; font-weight: 800; color: var(--abyss); }
+.post-cta p { margin: 6px 0 0; font-size: 15.5px; color: var(--ink-2); line-height: 1.6; }
+.post-cta .btn-row { margin-top: 0; }
+
+.cite { position: relative; margin-top: 18px; }
+.cite pre { margin: 0; padding: 20px 22px; border-radius: 16px; background: var(--code-bg); color: var(--code-ink); font-size: 13px; line-height: 1.6; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.copy-btn { position: absolute; top: 10px; right: 10px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(219, 231, 243, .25); background: rgba(219, 231, 243, .08); color: var(--code-ink); font: 600 12.5px var(--sans); cursor: pointer; }
+.copy-btn:hover { background: rgba(219, 231, 243, .16); }
+
+footer { padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+footer .post-shell { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+
+/* Reveal */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .bar-track i { transition: none; } }
+
+@media (max-width: 760px) {
+  .post-hero { padding: 104px 0 40px; }
+  .post p { font-size: 16.5px; line-height: 1.72; }
+  .post .run-in { font-size: 18px; }
+  .post-stats { grid-template-columns: repeat(2, 1fr); row-gap: 22px; }
+  .post-stats div:nth-child(3) { border-left: 0; }
+  .tracks { grid-template-columns: 1fr; }
+  .grid3 { grid-template-columns: 1fr; }
+  .grid3 figure { max-width: 420px; margin: 0 auto; width: 100%; }
+  .fig { padding: 16px 14px 12px; }
+  .bar-row { grid-template-columns: 1fr 52px; }
+  .bar-row .lbl { grid-column: 1 / -1; }
+  .pull { padding-left: 44px; }
+  .pull::before { font-size: 76px; }
+  .site-nav a { padding: 6px 9px; font-size: 13.5px; }
+  table.tasks td:nth-child(2) { white-space: normal; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header" id="top">
+  <div class="nav-wrap">
+    <a class="brand" href="#top">Indo<span>Bias</span></a>
+    <nav class="site-nav" aria-label="Sections">
+      <a href="#benchmark">Benchmark</a>
+      <a href="#findings">Findings</a>
+      <a href="#pretraining">Pretraining</a>
+      <a href="#citation">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<section class="post-hero">
+  <div class="hero-bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div></div>
+  <div class="post-shell">
+    <p class="eyebrow-row reveal"><span>Research</span><i class="sep"></i><span>May 2026</span><i class="sep"></i><span>arXiv 2606.01260</span></p>
+    <h1 class="post-title reveal"><span class="grad">IndoBias</span>
+      <span class="post-sub">A Dual Track Culturally Grounded Benchmark for LLMs Bias Evaluation in Indonesian Languages</span></h1>
+    <div class="post-meta reveal">
+      <div class="authors-line">
+        <span class="nm"><a href="https://scholar.google.com/citations?user=_l_utfMAAAAJ&amp;hl=en">Ikhlasul Akmal Hanif</a><sup>1*</sup></span>,
+        <span class="nm">Muhammad Falensi Azmi<sup>1*</sup></span>,
+        <span class="nm">Filbert Aurelian Tjiaranata<sup>2</sup></span>,
+        <span class="nm">Eryawan Presma Yulianrifat<sup>2</sup></span>,
+        <span class="nm"><a href="https://www.fajrikoto.com/">Fajri Koto</a><sup>1</sup></span>
+      </div>
+      <div class="affil-line"><sup>1</sup>MBZUAI &nbsp;·&nbsp; <sup>2</sup>Universitas Indonesia &nbsp;·&nbsp; <sup>*</sup>Main authors</div>
+    </div>
+    <div class="btn-row reveal">
+      <a class="btn btn-primary" href="https://arxiv.org/abs/2606.01260">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Paper</a>
+      <a class="btn" href="https://github.com/IkhlasulHanif/IndoBias">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>Code</a>
+      <a class="btn" href="https://huggingface.co/datasets/ikhlasulakmalh/IndoBias">
+        <span aria-hidden="true">🤗</span>Dataset</a>
+    </div>
+  </div>
+</section>
+
+<main class="post">
+  <div class="post-shell">
+    <div class="warn reveal" role="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <span><strong>Content warning.</strong> This page and the benchmark contain example statements that may be offensive, harmful or biased. They are used to measure bias, not to endorse it.</span>
+    </div>
+
+    <p class="lead-p reveal">Indonesia is home to more than 1,300 ethnic groups and over 700 local languages, yet bias in large language models has barely been studied there. Most bias benchmarks are built for English, and the few culturally aware ones only test groups with widely shared stereotypes. That leaves out the smaller communities, from Papua to Borneo to East Nusa Tenggara, that are most exposed to <em>invisibility bias</em>.</p>
+
+    <p class="reveal"><span class="run-in grad">IndoBias</span> is a culturally grounded bias benchmark for Indonesian and three local languages: Javanese, Sundanese and Makassar. It measures bias along two complementary tracks. One asks how strongly a model favours well-known stereotypes. The other asks whether it treats hundreds of Indonesian groups even-handedly, including groups with no "popular" stereotype at all.</p>
+
+    <dl class="post-stats reveal">
+      <div><dt>4,352</dt><dd>contrastive statements</dd></div>
+      <div><dt>4</dt><dd>languages</dd></div>
+      <div><dt>336</dt><dd>demographic groups</dd></div>
+      <div><dt>7</dt><dd>task formats</dd></div>
+    </dl>
+
+    <figure class="fig reveal">
+      <div class="fig-head">
+        <div class="fig-title">Same stereotype, different languages, different answers</div>
+        <div class="fig-sub">(a) A model assigns lower perplexity to the prototypical statement in Indonesian, but prefers the counter-stereotypical one in Javanese. (b) Asked to pick a label, the model calls the Korowai "lawless" and the Sundanese "law-abiding".</div>
+      </div>
+      <img class="on-white" src="assets/hook.png" width="1400" height="1132" alt="Two examples of model bias: perplexity flipping between Indonesian and Javanese for the same stereotype pair, and a model labelling Korowai as lawless and Sundanese as law-abiding." loading="lazy">
+    </figure>
+
+    <h2 id="benchmark" class="reveal">Two tracks: <span class="grad">depth and breadth</span></h2>
+
+    <p class="reveal">A contrastive approach measures bias intensity precisely, but by design it can only cover groups with documented, agreed-upon tropes. A generation-based approach scales to far more groups but offers less controlled measurement. IndoBias combines both.</p>
+
+    <div class="tracks reveal">
+      <div class="track-card">
+        <div class="tag">Depth</div>
+        <h3>IndoBias-Pairs</h3>
+        <p>544 manually curated pairs, each a prototypical statement and its counter-stereotypical twin, in four languages. A model is biased on a pair if it gives the stereotype lower perplexity.</p>
+        <ul>
+          <li>5 domains, 18 sub-domains</li>
+          <li>Validated by 5 native speakers (κ &gt; 0.8)</li>
+          <li>Translations refined by native speakers</li>
+        </ul>
+      </div>
+      <div class="track-card">
+        <div class="tag">Breadth</div>
+        <h3>IndoBias-QA</h3>
+        <p>Generation prompts over 336 Indonesian groups, built on the LLM Stereotype Index and scored by Stereotype Polarity (SP).</p>
+        <ul>
+          <li>Ethnicity, institutions, names, parties, religions, universities</li>
+          <li>Trait pairs from SPI, O*NET and WGI</li>
+          <li>7 task formats of rising complexity</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <figure class="fig fig-wide reveal">
+    <div class="fig-head">
+      <div class="fig-title">IndoBias-Pairs construction pipeline</div>
+      <div class="fig-sub">Templates with a single varying filler, validated by native speakers, then expanded into Javanese, Sundanese and Makassar.</div>
+    </div>
+    <div class="fig-scroll"><img class="on-white" src="assets/pipeline-pairs.png" width="2000" height="384" alt="Pipeline for building IndoBias-Pairs: template curation, stereotype validation, and translation into three local languages." loading="lazy"></div>
+  </figure>
+
+  <figure class="fig fig-wide reveal">
+    <div class="fig-head">
+      <div class="fig-title">IndoBias-QA construction pipeline</div>
+      <div class="fig-sub">Demographic groups collected from Wikidata and verified by hand, combined with stereotype pairs and seven task templates.</div>
+    </div>
+    <div class="fig-scroll"><img class="on-white" src="assets/pipeline-qa.png" width="2000" height="395" alt="Pipeline for building IndoBias-QA: demographic collection, stereotype pairs from SPI, O*NET and WGI, and task templates." loading="lazy"></div>
+  </figure>
+
+  <div class="post-shell">
+    <figure class="fig reveal">
+      <div class="fig-head">
+        <div class="fig-title">Seven tasks, ordered by complexity</div>
+        <div class="fig-sub">Harder formats make it harder for a model to fall back on a generic refusal, so it has to commit to an answer.</div>
+      </div>
+      <table class="tasks">
+        <thead><tr><th>#</th><th>Task</th><th>What the model does</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Simple Forced Choice</td><td>Choose the label that best describes a group.</td></tr>
+          <tr><td>2</td><td>Incentivized Choice</td><td>Choose a label in a promotion-related role-play.</td></tr>
+          <tr><td>3</td><td>Table Entry</td><td>Fill a dataset row with a group-label assignment.</td></tr>
+          <tr><td>4</td><td>Code Variable Assignment</td><td>Assign a label to a group-named variable in code.</td></tr>
+          <tr><td>5</td><td>Incentivized Dataset Entry</td><td>Fill a dataset row under an incentivized role-play.</td></tr>
+          <tr><td>6</td><td>Story Writing</td><td>Write a short story that implicitly reveals a label.</td></tr>
+          <tr><td>7</td><td>Code Function</td><td>Write and call a Python function with a hardcoded label.</td></tr>
+        </tbody>
+      </table>
+    </figure>
+
+    <h2 id="findings" class="reveal">What we <span class="grad">found</span></h2>
+
+    <p class="reveal"><span class="run-in">Decoders are more biased than encoders.</span>Decoder models often exceed 70% protrope win rate on Indonesian prompts and sometimes approach 80%; Sailor2-8B-Chat reaches 79.6% on Identity and Demographics. Encoders rarely cross 67%, and many, such as mBERT and XLM-R-Base, stay within 10 points of the unbiased 50%.</p>
+
+    <p class="reveal"><span class="run-in">Language changes the picture.</span>Indonesian prompts produce the highest protrope win rates in most domains, while Javanese is usually less biased (Sailor2-8B-Chat: 79.6% vs 61.3%). Ideology and Religion is the exception: there, Makassar can be worse than Indonesian (Qwen3-8B: 73.5% vs 59.2%).</p>
+
+    <blockquote class="pull reveal">Improving local-language fluency can <em>amplify</em> stereotypical associations.</blockquote>
+
+    <p class="reveal"><span class="run-in">Local fine-tuning pushes models toward the stereotype.</span>Every regionally adapted model we compared became more biased than its base: Komodo-7B over Llama-2-7B, SeaLLM-v3-7B over Qwen2-7B, and Sailor2-8B over Qwen2.5-7B. Sailor2-8B, the most heavily adapted, shows the largest rise, including +8.46 points on Sundanese.</p>
+
+    <figure class="fig reveal">
+      <div class="fig-head">
+        <div class="fig-title">Increase in protrope win rate after regional adaptation</div>
+        <div class="fig-sub">Average change in percentage points across the four languages, regional model minus its base model.</div>
+      </div>
+      <div class="bars">
+        <div class="bar-row"><span class="lbl">Sailor2-8B<small>from Qwen2.5-7B</small></span><span class="bar-track"><i style="--w: 100%; --c: var(--bar-a)"></i></span><span class="val">+6.11</span></div>
+        <div class="bar-row"><span class="lbl">Komodo-7B<small>from Llama-2-7B</small></span><span class="bar-track"><i style="--w: 48.1%; --c: var(--bar-b)"></i></span><span class="val">+2.94</span></div>
+        <div class="bar-row"><span class="lbl">SeaLLM-v3-7B<small>from Qwen2-7B</small></span><span class="bar-track"><i style="--w: 32.4%; --c: var(--bar-c)"></i></span><span class="val">+1.98</span></div>
+      </div>
+    </figure>
+
+    <p class="reveal"><span class="run-in">Groups are not treated evenly.</span>On IndoBias-QA, Stereotype Polarity varies widely across Indonesian groups. Korowai and Bajau score lower than Javanese and Sundanese on Basic Human Needs and Foundations of Wellbeing. Anonymized government institutions differ sharply on Control of Corruption and Government Effectiveness. One of three anonymized 2024 presidential candidate names scores much lower on Opportunity and Foundations of Wellbeing than the other two.</p>
+  </div>
+
+  <figure class="fig fig-wide reveal">
+    <div class="fig-head">
+      <div class="fig-title">Stereotype Polarity of Qwen3-8B across Indonesian groups</div>
+      <div class="fig-sub">Higher means more positive labels. Institutions and presidential candidate names are anonymized.</div>
+    </div>
+    <div class="grid3">
+      <figure><img class="on-white" src="assets/ethnicity.png" width="900" height="875" alt="Radar chart of Stereotype Polarity scores across Indonesian ethnic groups." loading="lazy"><figcaption>Ethnicities</figcaption></figure>
+      <figure><img class="on-white" src="assets/institutions.png" width="900" height="802" alt="Radar chart of Stereotype Polarity scores across anonymized government institutions." loading="lazy"><figcaption>Government institutions</figcaption></figure>
+      <figure><img class="on-white" src="assets/candidates.png" width="900" height="834" alt="Radar chart of Stereotype Polarity scores across anonymized 2024 presidential candidate names." loading="lazy"><figcaption>Presidential candidate names</figcaption></figure>
+    </div>
+  </figure>
+
+  <div class="post-shell">
+    <p class="reveal"><span class="run-in">Newer models are less consistent.</span>Newer models show a larger spread of Stereotype Polarity across groups. Qwen3.5-9B rises over Qwen3-8B on five of six demographics, and GPT-5 mini rises over GPT-4.1 mini on all six, for example +5.33 on Political Parties and +5.16 on Institutions. Their stereotypes are less stable and more context-dependent, rather than uniformly stronger.</p>
+
+    <h2 id="pretraining" class="reveal">Where bias <span class="grad">comes from</span></h2>
+
+    <p class="reveal">To see how bias forms during training, we pretrained IndoBERT from random weights for 500,000 steps on six data mixes and evaluated IndoBias-Pairs at every checkpoint.</p>
+
+    <p class="reveal"><span class="run-in">Web crawl introduces the most bias.</span>Among the three Indonesian corpora, CC-100 ends with the highest protrope win rate. Human-reviewed text, encyclopedic articles from Wikipedia and news from Liputan6, ends noticeably lower.</p>
+
+    <figure class="fig reveal">
+      <div class="fig-head">
+        <div class="fig-title">Final-checkpoint bias on Indonesian, by pretraining corpus</div>
+        <div class="fig-sub">Protrope win rate after 500,000 steps. 0.5 means no preference between the stereotype and its counterpart.</div>
+      </div>
+      <div class="bars">
+        <div class="bar-row"><span class="lbl">CC-100<small>web crawl</small></span><span class="bar-track"><i style="--w: 85%; --c: var(--bar-a)"></i></span><span class="val">0.585</span></div>
+        <div class="bar-row"><span class="lbl">Wikipedia<small>encyclopedic</small></span><span class="bar-track"><i style="--w: 55%; --c: var(--bar-b)"></i></span><span class="val">0.555</span></div>
+        <div class="bar-row"><span class="lbl">Liputan6<small>news</small></span><span class="bar-track"><i style="--w: 46%; --c: var(--bar-c)"></i></span><span class="val">0.546</span></div>
+      </div>
+      <div class="axis-note">Bar length shows distance above 0.5, from 0.50 to 0.60.</div>
+    </figure>
+
+    <p class="reveal"><span class="run-in">Adding local languages increases bias.</span>Mixing Javanese and Sundanese into Indonesian Wikipedia raises bias on every evaluated language. CC-100 mixes show the same trend, except on Indonesian itself, where the mix with the most local-language data ends lower.</p>
+  </div>
+
+  <figure class="fig fig-wide reveal">
+    <div class="fig-head">
+      <div class="fig-title">Protrope win rate across pretraining</div>
+      <div class="fig-sub">Six data compositions, evaluated on each language from 40% of training onward.</div>
+    </div>
+    <div class="fig-scroll"><img class="on-white" src="assets/pretraining.png" width="2200" height="528" alt="Line charts of protrope win rate over training progress for six pretraining data mixes, evaluated on Indonesian, Javanese, Makassar and Sundanese." loading="lazy"></div>
+  </figure>
+
+  <div class="post-shell">
+    <div class="post-cta reveal">
+      <div>
+        <h3>Get the data</h3>
+        <p>IndoBias is hosted as a gated dataset on Hugging Face. Request access for research use, and the authors will review your request.</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="https://huggingface.co/datasets/ikhlasulakmalh/IndoBias"><span aria-hidden="true">🤗</span>Request access</a>
+        <a class="btn" href="https://github.com/IkhlasulHanif/IndoBias">Code</a>
+      </div>
+    </div>
+
+    <h2 id="citation" class="reveal">Citation</h2>
+    <div class="cite reveal">
+      <button class="copy-btn" type="button" data-copy="bibtex">Copy</button>
+<pre id="bibtex">@misc{hanif2026indobias,
+  title         = {IndoBias: A Dual Track Culturally Grounded Benchmark for LLMs Bias Evaluation in Indonesian Languages},
+  author        = {Hanif, Ikhlasul Akmal and Azmi, Muhammad Falensi and Tjiaranata, Filbert Aurelian and Yulianrifat, Eryawan Presma and Koto, Fajri},
+  year          = {2026},
+  eprint        = {2606.01260},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2606.01260}
+}</pre>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="post-shell">
+    <span>IndoBias · MBZUAI · Universitas Indonesia</span>
+    <span>Contact: <a href="mailto:ikhlasul.hanif@mbzuai.ac.ae">ikhlasul.hanif@mbzuai.ac.ae</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var header = document.querySelector('.site-header');
+  function onScroll() { header.classList.toggle('is-scrolled', window.scrollY > 8); }
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  var els = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    els.forEach(function (el) { io.observe(el); });
+  } else {
+    els.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  var links = document.querySelectorAll('.site-nav a');
+  var sections = Array.prototype.map.call(links, function (a) { return document.querySelector(a.getAttribute('href')); });
+  window.addEventListener('scroll', function () {
+    var y = window.scrollY + 120, active = -1;
+    sections.forEach(function (s, i) { if (s && s.getBoundingClientRect().top + window.scrollY <= y) active = i; });
+    links.forEach(function (a, i) { a.classList.toggle('is-active', i === active); });
+  }, { passive: true });
+
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = document.getElementById(btn.getAttribute('data-copy')).textContent;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>

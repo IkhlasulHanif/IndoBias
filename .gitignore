@@ -98,3 +98,7 @@ indobias_pair/analysis/*.md
 .ruff_cache/
 
 hf_data/
+.claude/
+
+# Project page figures (published in the paper)
+!docs/assets/*.png
