@@ -36,7 +36,7 @@ IndoBias evaluates social bias in language models in Indonesian and three local 
 
 ## Data access
 
-The benchmark data is not included in this repository. It is hosted as a gated dataset on Hugging Face: [ikhlasulakmalh/IndoBias](https://huggingface.co/datasets/ikhlasulakmalh/IndoBias). Request access on that page, and the authors will review your request. For other questions, including access to the raw model outputs, contact Ikhlasul Akmal Hanif (ikhlasul.hanif@mbzuai.ac.ae) or Muhammad Falensi Azmi (muhammad.azmi@mbzuai.ac.ae).
+The benchmark data is not included in this repository. It is hosted as a gated dataset on Hugging Face: [ikhlasulakmalh/IndoBias](https://huggingface.co/datasets/ikhlasulakmalh/IndoBias). Fill in the short form on that page and accept the terms to get access immediately. For other questions, including access to the raw model outputs, contact Ikhlasul Akmal Hanif (ikhlasul.hanif@mbzuai.ac.ae) or Muhammad Falensi Azmi (muhammad.azmi@mbzuai.ac.ae).
 
 Once approved, download the data into the paths the code expects (all git-ignored):
 
