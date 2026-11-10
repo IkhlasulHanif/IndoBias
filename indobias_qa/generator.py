@@ -374,7 +374,7 @@ def load_groups_from_csv(filepath: Path) -> GroupCollection:
     Expected CSV columns:
     - group_id: Unique identifier
     - group_name: Display name
-    - notes: Optional notes (ignored)
+    - description (or notes): Optional description (ignored)
     
     The demography is inferred from the filename:
     - ethnicity.csv or ethnicity_indonesia.csv → ethnicity
