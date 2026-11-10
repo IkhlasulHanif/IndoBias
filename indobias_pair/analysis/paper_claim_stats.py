@@ -8,7 +8,14 @@ from statistics import pstdev
 
 import pandas as pd
 
-from source_vs_regional_base_common import BASE_PAIRS, LANGUAGE_LABELS, RAW_RESULT_DIR
+from source_vs_regional_base_common import (
+    BASE_PAIRS,
+    DOMAIN_COLUMNS,
+    LANGUAGE_LABELS,
+    RAW_RESULT_DIR,
+    normalize_labels,
+    read_result,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -16,13 +23,6 @@ PRETRAINING_RAW_DIR = REPO_ROOT / "indobias_pair/result/pretraining/raw"
 QA_SUMMARY_PATH = REPO_ROOT / "indobias_qa/results/analysis/sp_summary.json"
 OUTPUT_PATH = REPO_ROOT / "indobias_pair/analysis/paper_claim_stats.md"
 
-DOMAIN_COLUMNS = [
-    "Ideologi dan Agama",
-    "Identitas dan Demografi",
-    "Status Ekonomi",
-    "Kultural dan Geografis",
-    "Peran Sosial dan Keluarga",
-]
 LANGUAGE_DIRS = {
     "ID": "IndoBias_ID",
     "JV": "IndoBias_Javanese",
@@ -248,7 +248,7 @@ def collect_model_family_bias_strength() -> tuple[
             path = RAW_RESULT_DIR / language_dir / filename
             if not path.exists():
                 continue
-            df = pd.read_excel(path)
+            df = read_result(path)
             wins = protrope_win(df)
             overall_abs_devs.append(abs(wins.mean() * 100.0 - 50.0))
             for domain in DOMAIN_COLUMNS:
@@ -302,10 +302,10 @@ def collect_decoder_language_effects() -> dict[str, list[dict[str, object]]]:
     ideology_scores_by_model = {}
     for filename in files:
         for language_dir, language_code in LANGUAGE_LABELS.items():
-            df = pd.read_excel(RAW_RESULT_DIR / language_dir / filename)
+            df = read_result(RAW_RESULT_DIR / language_dir / filename)
             wins = protrope_win(df)
             overall_scores[(filename, language_code)] = wins.mean() * 100.0
-            ideology_wins = wins[df["domain"].eq("Ideologi dan Agama")]
+            ideology_wins = wins[df["domain"].eq("Ideology and Religion")]
             ideology_scores_by_model[(filename, language_code)] = (
                 ideology_wins.mean() * 100.0
             )
@@ -368,8 +368,8 @@ def collect_source_regional_mcnemar() -> list[dict[str, object]]:
     for pair in BASE_PAIRS:
         pair_name = f"{pair.source_label} -> {pair.regional_label}"
         for language_dir, language_code in LANGUAGE_LABELS.items():
-            source_df = pd.read_excel(RAW_RESULT_DIR / language_dir / pair.source_file)
-            regional_df = pd.read_excel(
+            source_df = read_result(RAW_RESULT_DIR / language_dir / pair.source_file)
+            regional_df = read_result(
                 RAW_RESULT_DIR / language_dir / pair.regional_file
             )
             source_wins = protrope_win(source_df)
@@ -397,7 +397,7 @@ def load_pretraining(run: str, language: str) -> tuple[pd.DataFrame, pd.Series]:
         / "checkpoint-500000"
         / PRETRAINING_REPORT_FILES[language]
     )
-    df = pd.read_csv(path)
+    df = normalize_labels(pd.read_csv(path))
     return df, protrope_win(df)
 
 
@@ -432,8 +432,8 @@ def collect_pretraining_claims() -> tuple[
     for before, after, language in comparisons:
         before_df, before_wins = load_pretraining(before, language)
         after_df, after_wins = load_pretraining(after, language)
-        if not before_df[["protrope", "antitrope", "dimension", "domain"]].equals(
-            after_df[["protrope", "antitrope", "dimension", "domain"]]
+        if not before_df[["protrope", "antitrope", "subdomain", "domain"]].equals(
+            after_df[["protrope", "antitrope", "subdomain", "domain"]]
         ):
             raise ValueError(
                 f"Unaligned pretraining comparison: {before} -> {after} ({language})"

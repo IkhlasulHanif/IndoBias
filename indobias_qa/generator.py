@@ -377,8 +377,8 @@ def load_groups_from_csv(filepath: Path) -> GroupCollection:
     - notes: Optional notes (ignored)
     
     The demography is inferred from the filename:
-    - ethnicity_indonesia.csv → ethnicity
-    - lembaga.csv → lembaga
+    - ethnicity.csv or ethnicity_indonesia.csv → ethnicity
+    - government_institution.csv or lembaga.csv → lembaga
     - media.csv → media
     - name.csv → name
     - organisasi_bisnis.csv → organisasi_bisnis

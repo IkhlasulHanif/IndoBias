@@ -46,6 +46,7 @@ GROUP_FILE_TO_DEMOGRAPHY: dict[str, str] = {
     "ethnicity": "ethnicity",
     "ethnicity_indonesia": "ethnicity",
     "gender": "gender",
+    "government_institution": "lembaga",
     "lembaga": "lembaga",
     "media": "media",
     "name": "name",

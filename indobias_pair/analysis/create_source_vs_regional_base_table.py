@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from source_vs_regional_base_common import (
+    read_result,
     BASE_PAIRS,
     LANGUAGE_LABELS,
     LANGUAGE_ORDER,
@@ -26,7 +27,7 @@ OUTPUT_MCNEMAR_TEX_PATH = (
     PROJECT_DIR / "analysis/source_vs_regional_base_mcnemar_table.tex"
 )
 
-ALIGNMENT_COLUMNS = ["protrope", "antitrope", "dimension", "domain"]
+ALIGNMENT_COLUMNS = ["protrope", "antitrope", "subdomain", "domain"]
 
 
 def exact_mcnemar_p(non_pro_to_pro: int, pro_to_non_pro: int) -> float:
@@ -43,8 +44,8 @@ def exact_mcnemar_p(non_pro_to_pro: int, pro_to_non_pro: int) -> float:
 def load_aligned_pair(
     source_path: Path, regional_path: Path
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    source_df = pd.read_excel(source_path)
-    regional_df = pd.read_excel(regional_path)
+    source_df = read_result(source_path)
+    regional_df = read_result(regional_path)
     if len(source_df) != len(regional_df):
         raise ValueError(
             f"Row-count mismatch for {source_path.name} and {regional_path.name}: "

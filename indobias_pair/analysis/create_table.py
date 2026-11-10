@@ -4,26 +4,14 @@ from pathlib import Path
 
 import pandas as pd
 
+from source_vs_regional_base_common import DOMAIN_COLUMNS, read_result
+
 
 RAW_RESULT_DIR = Path("indobias_pair/result/pairs/raw")
 OUTPUT_PATH = Path("indobias_pair/analysis/protrope_win_rate_tables.tex")
 LANGUAGE_ORDER = ["ID", "JV", "SU", "MKS"]
 
-DOMAIN_COLUMNS = [
-    "Ideologi dan Agama",
-    "Identitas dan Demografi",
-    "Status Ekonomi",
-    "Kultural dan Geografis",
-    "Peran Sosial dan Keluarga",
-]
 TABLE_GROUP_COLUMNS = DOMAIN_COLUMNS
-DOMAIN_DISPLAY_LABELS = {
-    "Ideologi dan Agama": "Ideology and Religion",
-    "Identitas dan Demografi": "Identity and Demographics",
-    "Status Ekonomi": "Economic Status",
-    "Kultural dan Geografis": "Cultural and Geographic",
-    "Peran Sosial dan Keluarga": "Social and Family Roles",
-}
 
 LANGUAGE_LABELS = {
     "IndoBias_ID": "Indonesia",
@@ -166,7 +154,7 @@ def validate_model_coverage(model_type: str) -> None:
 
 
 def compute_win_rates(file_path: Path) -> dict[str, float]:
-    df = pd.read_excel(file_path)
+    df = read_result(file_path)
     df["protrope_win"] = df["protrope_perplexity"] < df["antitrope_perplexity"]
 
     domain_scores = (
@@ -283,7 +271,7 @@ def render_table(model_type: str) -> str:
         (
             r"\textbf{Model} & "
             + " & ".join(
-                rf"\multicolumn{{4}}{{c}}{{\textbf{{{sanitize_latex(DOMAIN_DISPLAY_LABELS[column])}}}}}"
+                rf"\multicolumn{{4}}{{c}}{{\textbf{{{sanitize_latex(column)}}}}}"
                 for column in group_columns
             )
             + r" \\"
