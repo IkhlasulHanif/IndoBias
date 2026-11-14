@@ -15,10 +15,10 @@
     <sup>1</sup>MBZUAI, <sup>2</sup>Universitas Indonesia
   </p>
 
-[![Project Page](https://img.shields.io/badge/Project-Page-0055be.svg)](https://ikhlasulhanif.github.io/IndoBias/)
+[![Project Page](https://img.shields.io/badge/Project-Page-0055be.svg)](https://mbzuai-nlp.github.io/IndoBias/)
 [![arXiv](https://img.shields.io/badge/arXiv-2606.01260-b31b1b.svg)](https://arxiv.org/abs/2606.01260)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-yellow.svg)](https://huggingface.co/datasets/ikhlasulakmalh/IndoBias)
-[![GitHub](https://img.shields.io/badge/GitHub-Code-blue?logo=github)](https://github.com/IkhlasulHanif/IndoBias)
+[![GitHub](https://img.shields.io/badge/GitHub-Code-blue?logo=github)](https://github.com/mbzuai-nlp/IndoBias)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
